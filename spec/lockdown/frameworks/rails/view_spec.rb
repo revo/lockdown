@@ -27,16 +27,24 @@ describe Lockdown::Frameworks::Rails::Controller do
       link = "<a href='http://a.com'>my_link</a>"
       @view.stub!(:authorized?).and_return(true)
       @view.stub!(:link_to_open).and_return(link)
-
       @view.link_to_secured("my link", @options).should == link
     end
 
-     it "should return an empty string if authorized" do
+    it "should return an empty string if authorized" do
       @view.stub!(:authorized?).and_return(false)
-
       @view.link_to_secured("my link", @options).should == ""
-    end 
+    end
+
+    it "should attempt to remove a subdirectory if it exists" do
+      @view.should_receive(:remove_subdirectory).once
+      @view.stub!(:authorized?).and_return(false)
+      @view.link_to_secured("my link", @options).should == ""
+    end
+
   end
+
+
+
 
   describe "#button_to_secured" do
     it "should return the link if authorized" do
@@ -51,7 +59,15 @@ describe Lockdown::Frameworks::Rails::Controller do
       @view.stub!(:authorized?).and_return(false)
 
       @view.button_to_secured("my link", @options).should == ""
-    end 
+     end
+
+    it "should attempt to remove a subdirectory if it exists" do
+      @view.should_receive(:remove_subdirectory).once
+      @view.stub!(:authorized?).and_return(false)
+      @view.button_to_secured("my link", @options).should == ""
+    end
+
+
   end
 
   describe "#link_to_or_show" do
@@ -84,4 +100,26 @@ describe Lockdown::Frameworks::Rails::Controller do
       @view.links(links).should == links.join(' | ')
     end
   end
+
+  describe "#remove_subdirectory" do
+
+    before(:each) do
+      Lockdown::System.should_receive(:fetch).with(:subdirectory).and_return 'test'
+    end
+
+    it "should remove subdirectory /test" do
+      @view.remove_subdirectory('/test/posts/new').should == '/posts/new'
+    end
+
+    it "should remove subdirectory 'test' without a leading /" do
+      @view.remove_subdirectory('test/posts/new').should == '/posts/new'
+    end
+
+    it "should leave the url untouched" do
+      @view.remove_subdirectory('/posts/new').should == '/posts/new'
+    end
+
+
+  end
+
 end

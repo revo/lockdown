@@ -17,7 +17,9 @@ module Lockdown
 
           method = html_options ? html_options[:method] : nil
 
-          if authorized?(url, method)
+         url_to_authorize = remove_subdirectory(url)
+
+         if authorized?(url_to_authorize, method)
             return link_to_open(name, url, html_options)
           end
           return ""
@@ -28,7 +30,9 @@ module Lockdown
 
           method = html_options ? html_options[:method] : nil
 
-          if authorized?(url, method)
+          url_to_authorize = remove_subdirectory(url)
+
+          if authorized?(url_to_authorize, method)
             return button_to_open(name, url, html_options)
           end
           return ""
@@ -44,6 +48,13 @@ module Lockdown
           lis.each{|link| rvalue << link if link.length > 0 }
           rvalue.join( Lockdown::System.fetch(:link_separator) )
         end
+
+        
+        def remove_subdirectory(url)
+          subdir = Lockdown::System.fetch(:subdirectory)
+          subdir ? url.gsub(/^\/?#{subdir}/,'') : url
+        end
+
       end # View
     end # Rails
   end # Frameworks

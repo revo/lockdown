@@ -28,7 +28,7 @@ module Lockdown
       end
     end
 
-    protected 
+    protected
 
     def self.paths_for(str_sym, *methods)
       str_sym = str_sym.to_s if str_sym.is_a?(Symbol)
@@ -37,9 +37,6 @@ module Lockdown
         methods = available_actions(klass) 
       end
       path_str = str_sym.gsub("__","\/") 
-        
-      subdir = Lockdown::System.fetch(:subdirectory)
-      path_str = "#{subdir}/#{path_str}" if subdir
 
       controller_actions = methods.flatten.collect{|m| m.to_s}
 
