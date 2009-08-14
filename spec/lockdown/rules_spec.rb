@@ -54,6 +54,8 @@ describe Lockdown::Rules do
 
   describe "#get_permissions" do
     it "should return array of permission names as symbols" do
+      Lockdown.should_receive(:add_controller_method)
+      
       @rules.set_permission(:home_page)
       @rules.set_permission(:user_management)
       @rules.process_rules
@@ -64,6 +66,8 @@ describe Lockdown::Rules do
 
   describe "#permission_exists?" do
     it "should return true if permission exists" do
+      Lockdown.should_receive(:add_controller_method)
+
       @rules.set_permission(:home_page)
       @rules.process_rules
       @rules.permission_exists?(:home_page).should be_true
@@ -99,6 +103,8 @@ describe Lockdown::Rules do
 
   describe "#process_rules" do
     it "should validate user_group permissions" do
+      Lockdown.should_receive(:add_controller_method)
+      
       @rules.set_user_group(:test_group, :a_perm)
       error =  "User Group: test_group, permission not found: a_perm"
 

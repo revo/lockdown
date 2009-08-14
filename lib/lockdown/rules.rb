@@ -18,7 +18,6 @@ module Lockdown
 
       @permission_objects = {}
 
-      @controller_classes = []
       @public_access      = []
       @protected_access   = []
 

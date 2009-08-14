@@ -7,23 +7,13 @@ describe Lockdown::System do
     Lockdown::System.options['test'] = "my test"
     Lockdown::System.fetch('test').should == "my test"
   end
-
-  it "should fetch the controller class" do
-    klass = mock("User Controller Class")
-    Lockdown.stub!(:controller_class_name).and_return(:users)
-    Lockdown::System.controller_classes = {}
-    Lockdown::System.controller_classes[:users] = klass
-    Lockdown::System.fetch_controller_class(:users).should equal(klass)
-  end
-
+  
   describe "#configure" do
     it "should call the methods responsible for defining the rules" do
       Lockdown::System.stub!(:skip_sync?).and_return(false)
 
       Lockdown::System.should_receive :set_defaults 
  
-      Lockdown::System.should_receive :load_controller_classes
-
       Lockdown::System.should_receive :instance_eval
  
       Lockdown::System.should_receive :process_rules
@@ -48,7 +38,7 @@ describe Lockdown::System do
 
     it "should build the paths from the controller class if no methods specified" do
       methods = ["new","edit","create","update"]
-      Lockdown::System.stub!(:fetch_controller_class)
+      Lockdown.stub!(:fetch_controller_class)
       Lockdown::System.stub!(:available_actions).
         and_return(methods)
 

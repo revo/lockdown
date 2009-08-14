@@ -1,3 +1,5 @@
+require 'active_support'
+
 module Lockdown
   module Helper
     def class_name_from_file(str)
@@ -10,34 +12,42 @@ module Lockdown
       if str_sym.is_a?(Symbol)
         titleize(str_sym)
       else
-        underscore(str_sym).tr(' ','_').to_sym
+       str_sym.underscore.tr(' ','_').to_sym
       end
     end
 
     def user_group_class
-      eval(Lockdown::System.fetch(:user_group_model))
+      eval(user_group_model_string)
     end
 
     def user_groups_hbtm_reference
-      underscore(Lockdown::System.fetch(:user_group_model)).pluralize.to_sym
+      user_group_model_string.underscore.pluralize.to_sym
     end
 
     def user_group_id_reference
-      underscore(Lockdown::System.fetch(:user_group_model)) + "_id"
+      user_group_model_string.underscore + "_id"
     end
 
     def user_class
-      eval(Lockdown::System.fetch(:user_model))
+      eval(user_model_string)
     end
 
     def users_hbtm_reference
-      underscore(Lockdown::System.fetch(:user_model)).pluralize.to_sym
+      user_model_string.underscore.pluralize.to_sym
     end
 
     def user_id_reference
-      underscore(Lockdown::System.fetch(:user_model)) + "_id"
+      user_model_string.underscore + "_id"
     end
 
+    def user_group_model_string
+      Lockdown::System.fetch(:user_group_model) || "UserGroup"
+    end
+    
+    def user_model_string
+      Lockdown::System.fetch(:user_model) || "User"
+    end
+    
     def get_string(value)
       if value.respond_to?(:name)
         string_name(value.name)

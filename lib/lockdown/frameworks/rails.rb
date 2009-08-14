@@ -66,11 +66,15 @@ module Lockdown
         # cache_classes is true in production and testing, need to
         # modify the ApplicationController 
         def controller_parent
-          if ::Rails.configuration.cache_classes
+          if caching_classes?
             ApplicationController
           else
             ActionController::Base
           end
+        end
+        
+        def caching_classes?
+          ::Rails.configuration.cache_classes
         end
 
         # cache_classes is true in production and testing, need to
@@ -97,7 +101,11 @@ module Lockdown
         include Lockdown::Frameworks::Rails::Controller
 
         def skip_sync?
-          Lockdown::System.fetch(:skip_db_sync_in).include?(ENV['RAILS_ENV'])
+          Lockdown::System.fetch(:skip_db_sync_in).include?(framework_environment)
+        end
+        
+        def framework_environment
+          ::Rails.env
         end
       end # System
     end # Rails

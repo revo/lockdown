@@ -14,24 +14,6 @@ describe Lockdown::Frameworks::Rails::Controller do
     @lockdown = mock("lockdown")
   end
 
-  describe "#available_actions" do
-    it "should return action_methods" do
-      post_controller = mock("PostController")
-      post_controller.stub!(:action_methods).and_return(@actions)
-
-      @controller.available_actions(post_controller).
-        should == @actions
-    end
-
-    it "should eql public_instance_methods - hidden_actions unless action_methods" do
-      post_controller = mock("PostController")
-      post_controller.stub!(:public_instance_methods).and_return(["m1", "m2", "h1"])
-      post_controller.stub!(:hidden_actions).and_return(["h1"])
-      @controller.available_actions(post_controller).
-        should == ["m1", "m2"]
-    end
-  end
-
   describe "#controller_name" do
     it "should return action_methods" do
       post_controller = mock("PostController")
@@ -122,7 +104,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
       @controller.stub!(:request).and_return(request)
 
-      @controller.sent(:sent_from_uri).should == "/blip"
+      @controller.send(:sent_from_uri).should == "/blip"
     end
   end
 
@@ -204,7 +186,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
   describe "#redirect_back_or_default" do
     it "should redirect to default without session[:prevpage]" do
       @controller.should_receive(:redirect_to).with("/")
-      @controller.redirect_back_or_default("/")
+      @controller.send :redirect_back_or_default, "/"
     end
 
     it "should redirect to session[:prevpage]" do
@@ -212,7 +194,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
       path.stub!(:blank?).and_return(false)
       @session[:prevpage] = path
       @controller.should_receive(:redirect_to).with(path)
-      @controller.redirect_back_or_default("/")
+      @controller.send :redirect_back_or_default, "/"
     end
   end
 
