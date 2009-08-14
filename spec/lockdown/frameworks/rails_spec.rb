@@ -48,9 +48,16 @@ describe Lockdown::Frameworks::Rails do
   end
 end
 
+RAILS_ROOT = "/shibby/dibby/do"
+
+module ActionController; class Base; end end
+
+class ApplicationController; end
+
+module ActionView; class Base; end end
+
 describe Lockdown::Frameworks::Rails::Environment do
 
-  RAILS_ROOT = "/shibby/dibby/do"
   before do
     @env = class Test; extend Lockdown::Frameworks::Rails::Environment; end
   end
@@ -80,13 +87,11 @@ describe Lockdown::Frameworks::Rails::Environment do
 
   describe "#controller_parent" do
     it "should return ActionController::Base if not caching classes" do
-      module ActionController; class Base; end end
       @env.should_receive(:caching_classes?).and_return(false)
       @env.controller_parent.should == ActionController::Base
     end
 
     it "should return ApplicationController if caching classes" do
-      class ApplicationController; end
       @env.should_receive(:caching_classes?).and_return(true)
       @env.controller_parent.should == ApplicationController
     end
@@ -95,7 +100,6 @@ describe Lockdown::Frameworks::Rails::Environment do
 
   describe "#view_helper" do
     it "should return ActionView::Base" do
-      module ActionView; class Base; end end
       
       @env.view_helper.should == ActionView::Base
     end

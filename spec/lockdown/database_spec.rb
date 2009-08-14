@@ -1,5 +1,7 @@
 require File.join(File.dirname(__FILE__), %w[.. spec_helper])
 
+class Permission; end;
+
 describe Lockdown::Database do
   before do    
     Lockdown::System.stub!(:get_permissions).and_return([:permission])
@@ -7,7 +9,6 @@ describe Lockdown::Database do
     @user_group_class = mock(:table_exists? => true, :find => false)
     Lockdown.stub!(:user_group_class).and_return @user_group_class
 
-    Permission = mock('Permission') unless defined?(Permission)
   end
 
   describe "#sync_with_db" do
