@@ -10,6 +10,10 @@ module Lockdown
         @permissions = Lockdown::System.get_permissions
         @user_groups = Lockdown::System.get_user_groups
 
+        unless ::Permission.table_exists? && Lockdown.user_group_class.table_exists?
+          puts ">> Lockdown tables not found.  Skipping database sync."
+          return
+        end
         create_new_permissions
 
         delete_extinct_permissions
