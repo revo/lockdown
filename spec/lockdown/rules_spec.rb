@@ -32,8 +32,22 @@ describe Lockdown::Rules do
 
     it "should raise and InvalidRuleAssignment if permission does not exist" do
       msg = "Permission not found: user_management"
-      lambda{@rules.set_public_access(:user_management)}.should
+      lambda{@rules.set_public_access(:toy_management)}.should
         raise_error(Lockdown::InvalidRuleAssignment, msg)
+    end
+  end
+
+  describe "#public_access?" do
+    it "should return true when permission is public" do
+      @rules.set_permission(:home_page)
+      @rules.set_public_access(:home_page)
+      @rules.public_access?(:home_page).should == true
+    end
+
+    it "should return false when permission is not public" do
+      @rules.set_permission(:home_page)
+      @rules.set_protected_access(:home_page)
+      @rules.public_access?(:home_page).should == false
     end
   end
 
@@ -49,6 +63,20 @@ describe Lockdown::Rules do
       msg = "Permission not found: user_management"
       lambda{@rules.set_protected_access(:user_management)}.should
         raise_error(Lockdown::InvalidRuleAssignment, msg)
+    end
+  end
+
+  describe "#protected_access?" do
+    it "should return true when permission is protected" do
+      @rules.set_permission(:home_page)
+      @rules.set_protected_access(:home_page)
+      @rules.protected_access?(:home_page).should == true
+    end
+
+    it "should return false when permission is not protected" do
+      @rules.set_permission(:home_page)
+      @rules.set_public_access(:home_page)
+      @rules.protected_access?(:home_page).should == false
     end
   end
 

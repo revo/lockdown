@@ -14,6 +14,19 @@ describe Lockdown::Session do
 
     @controller.stub!(:session).and_return(@session)
   end
+  
+  describe "#logged_in?" do
+    it "should return false withou current_user_id" do
+      @controller.send(:logged_in?).should == false
+    end
+  end
+
+  describe "#current_user_id" do
+    it "should return false withou current_user_id" do
+      @session[:current_user_id] = 2
+      @controller.send(:current_user_id).should == 2
+    end
+  end
 
   describe "#nil_lockdown_values" do
     it "should nil access_rights" do
@@ -86,5 +99,14 @@ describe Lockdown::Session do
   end
 
   describe "#session_access_rights_include?" do
+    it "should return true for posts/index" do
+      @controller.send(:session_access_rights_include?,'posts/index').
+        should == true
+    end
+
+    it "should return false for pages/index" do
+      @controller.send(:session_access_rights_include?,'pages/index').
+        should == false
+    end
   end
 end

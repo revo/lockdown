@@ -98,10 +98,12 @@ module Lockdown
     #       equals(:id)
     #
     def initialize(name_symbol)
-      @name         = name_symbol
-      @controllers  = {}
-      @models       = {}
-      @current_context = Lockdown::RootContext.new(name_symbol)
+      @name             = name_symbol
+      @controllers      = {}
+      @models           = {}
+      @current_context  = Lockdown::RootContext.new(name_symbol)
+      @public_access    = false
+      @protected_access = false
     end
 
     def with_controller(name_symbol)

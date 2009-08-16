@@ -30,19 +30,10 @@ module Lockdown
         :successful_login_path => "/",
         :subdirectory => nil,
         :skip_db_sync_in => ["test"],
-        :link_separator => ' | '
+        :link_separator => ' | ',
+        :user_group_model => "UserGroup",
+        :user_model => "User" 
       }
-
-      begin
-        @options[:user_group_model] = "UserGroup"
-      rescue NameError 
-      end
-
-      begin
-        @options[:user_model] = "User" 
-      rescue NameError 
-      end
-      
     end
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,9 +53,9 @@ module Lockdown
     #
     def set_public_access(*perms)
       perms.each do |perm_symbol|
-        perm = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+        perm = find_permission_object(perm_symbol)
         if perm
-          perm[1].set_as_public_access 
+          perm.set_as_public_access 
         else
           msg = "Permission not found: #{perm_symbol}"
           raise InvalidRuleAssigment, msg
@@ -79,9 +70,9 @@ module Lockdown
     #
     def set_protected_access(*perms)
       perms.each do |perm_symbol|
-        perm = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+        perm = find_permission_object(perm_symbol)
         if perm
-          perm[1].set_as_protected_access 
+          perm.set_as_protected_access 
         else
           msg = "Permission not found: #{perm_symbol}"
           raise InvalidRuleAssigment, msg
@@ -118,13 +109,15 @@ module Lockdown
     alias_method :has_permission?, :permission_exists?
     
     # returns true if the permission is public
-    def public_access?(permmision_symbol)
-      public_access.include?(permmision_symbol)
+    def public_access?(perm_symbol)
+      obj = find_permission_object(perm_symbol)
+      obj.nil? ? false : obj.public_access? 
     end
 
     # returns true if the permission is public
-    def protected_access?(permmision_symbol)
-      protected_access.include?(permmision_symbol)
+    def protected_access?(perm_symbol)
+      obj = find_permission_object(perm_symbol)
+      obj.nil? ? false : obj.protected_access?
     end
 
     # These permissions are assigned by the system 
@@ -277,6 +270,11 @@ module Lockdown
     end
 
     private
+
+    def find_permission_object(perm_symbol)
+      obj = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+      obj[1] if obj
+    end
 
     def validate_user_groups
       user_groups.each do |user_group, perms|
