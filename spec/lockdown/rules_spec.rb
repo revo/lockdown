@@ -106,6 +106,25 @@ describe Lockdown::Rules do
     end
   end
 
+  describe "#permission_assigned_automatically?" do
+    it "should return true when permission is public" do
+      @rules.set_permission(:home_page)
+      @rules.set_public_access(:home_page)
+      @rules.permission_assigned_automatically?(:home_page).should == true
+    end
+
+    it "should return true when permission is protected" do
+      @rules.set_permission(:home_page)
+      @rules.set_protected_access(:home_page)
+      @rules.permission_assigned_automatically?(:home_page).should == true
+    end
+
+    it "should return false when permission is not public" do
+      @rules.set_permission(:home_page)
+      @rules.permission_assigned_automatically?(:home_page).should == false
+    end
+  end
+
   describe "#get_user_groups" do
     it "should return array of user group names as symbols" do
       @rules.set_permission(:user_management)

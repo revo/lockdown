@@ -173,6 +173,15 @@ module Lockdown
       rights
     end
 
+    # Return array of controller/action for a user group
+    def access_rights_for_user_group(user_group_sym)
+      res = []
+      permissions_for_user_group(user_group_sym).each do |perm|
+        res << access_rights_for_permission(perm)
+      end
+      res.flatten
+    end
+
     # Return array of controller/action for a permission
     def access_rights_for_permission(perm)
       sym = Lockdown.get_symbol(perm)

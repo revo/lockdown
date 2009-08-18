@@ -34,7 +34,7 @@ module Lockdown
 
           klass.helper_method :authorized?
 
-          klass.hide_action(:set_current_user, :configure_lockdown, :check_request_authorization)
+          klass.hide_action(:set_current_user, :configure_lockdown, :check_request_authorization, :check_model_authorization)
 
           klass.before_filter do |c|
             c.set_current_user
