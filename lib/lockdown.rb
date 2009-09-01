@@ -1,11 +1,21 @@
 $:.unshift File.dirname(__FILE__)
 
 require File.join("lockdown", "helper")
+require File.join("lockdown", "session")
+require File.join("lockdown", "context")
+require File.join("lockdown", "permission")
+require File.join("lockdown", "database")
+require File.join("lockdown", "rules")
+require File.join("lockdown", "system")
+
+require File.join("lockdown", "references")
 
 module Lockdown
+  extend Lockdown::References
   extend Lockdown::Helper
 
-  VERSION = '1.3.0'
+  # current version is 1.3.0
+  VERSION = '1.3.1'
 
   # Returns the version string for the library.
   def self.version
@@ -59,14 +69,7 @@ module Lockdown
   end # mixin_resource?
 end # Lockdown
 
-require File.join("lockdown", "session")
-require File.join("lockdown", "context")
-require File.join("lockdown", "permission")
-require File.join("lockdown", "database")
-require File.join("lockdown", "rules")
-require File.join("lockdown", "system")
-
 puts "=> Mixing in Lockdown version: #{Lockdown.version} \n"
-
 Lockdown.mixin
+
 

@@ -21,7 +21,7 @@ module Lockdown
             include Lockdown::Frameworks::Rails::View
           end
 
-          Lockdown::System.class_eval do 
+          Lockdown.system.class_eval do 
             extend Lockdown::Frameworks::Rails::System
           end
         end
@@ -101,7 +101,7 @@ module Lockdown
         include Lockdown::Frameworks::Rails::Controller
 
         def skip_sync?
-          Lockdown::System.fetch(:skip_db_sync_in).include?(framework_environment)
+          Lockdown.system.fetch(:skip_db_sync_in).include?(framework_environment)
         end
         
         def framework_environment

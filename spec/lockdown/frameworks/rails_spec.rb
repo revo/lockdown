@@ -1,11 +1,5 @@
 require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
 
-class Mikey  
-  def method_missing(method, *args)    
-    true
-  end
-end
-
 describe Lockdown::Frameworks::Rails do
   before do
     @rails = Lockdown::Frameworks::Rails
@@ -39,7 +33,10 @@ describe Lockdown::Frameworks::Rails do
       end
 
       @system = Mikey
-      Lockdown::System.should_receive(:class_eval) do
+      @system.should_receive(:extend).
+        with( Lockdown::Frameworks::Rails::System )
+
+      Lockdown.should_receive(:system) do 
         @system
       end
 
@@ -47,20 +44,28 @@ describe Lockdown::Frameworks::Rails do
 
       @rails.mixin
     end
+
   end
 
   describe "#mixin_controller" do
 
     it "should inject itself" do
-      klass = mock("controller parent")
+      klass = Mikey
 
-      klass.should_receive(:class_eval)
+      klass.should_receive(:include).
+        with(Lockdown::Session)
+
+      klass.should_receive(:include).
+        with(Lockdown::Frameworks::Rails::Controller::Lock)
 
       klass.should_receive(:helper_method).with(:authorized?)
 
       klass.should_receive(:hide_action).with(:set_current_user, :configure_lockdown, :check_request_authorization, :check_model_authorization)
 
-      klass.should_receive(:before_filter) 
+
+      klass.should_receive(:before_filter) do |*args|
+        puts args.inspect
+      end
 
       klass.should_receive(:filter_parameter_logging)
 

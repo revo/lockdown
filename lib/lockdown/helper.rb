@@ -41,11 +41,11 @@ module Lockdown
     end
 
     def user_group_model_string
-      Lockdown::System.fetch(:user_group_model) || "UserGroup"
+      Lockdown.system.fetch(:user_group_model) || "UserGroup"
     end
     
     def user_model_string
-      Lockdown::System.fetch(:user_model) || "User"
+      Lockdown.system.fetch(:user_model) || "User"
     end
     
     def get_string(value)
