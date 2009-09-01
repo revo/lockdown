@@ -77,9 +77,9 @@ describe Lockdown::Session do
     it "should set the access_rights from the user list" do
       array  = ["posts/index", "posts/show"]
       Lockdown::System.stub!(:access_rights_for_user).and_return(array)
-      usr = mock(:id => 1234)
-      @controller.stub!(:current_user).and_return(usr)
-      @controller.send(:add_lockdown_session_values)
+      usr = mock('user')
+      usr.should_receive(:id).and_return(1234)
+      @controller.send(:add_lockdown_session_values, usr)
       @session[:access_rights].should == array
     end
   end

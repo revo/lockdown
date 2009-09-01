@@ -1,5 +1,11 @@
 require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
 
+class Mikey  
+  def method_missing(method, *args)    
+    true
+  end
+end
+
 describe Lockdown::Frameworks::Rails do
   before do
     @rails = Lockdown::Frameworks::Rails
@@ -23,29 +29,47 @@ describe Lockdown::Frameworks::Rails do
 
   describe "#mixin" do
     it "should perform class_eval on controller view and system to inject itself" do
-      module ActionController; class Base; end end
-      module ActionView; class Base; end end
 
-      Lockdown.stub!(:controller_parent).and_return(ActionController::Base)
-      Lockdown.stub!(:view_helper).and_return(ActionView::Base)
+      @view_helper = Mikey
+      @view_helper.should_receive(:include).
+        with( Lockdown::Frameworks::Rails::View )
 
-      ActionView::Base.should_receive(:class_eval)
+      Lockdown.should_receive(:view_helper) do 
+        @view_helper
+      end
 
-      ActionController::Base.should_receive(:helper_method)
-      ActionController::Base.should_receive(:before_filter)
-      ActionController::Base.should_receive(:filter_parameter_logging)
-      ActionController::Base.should_receive(:rescue_from)
+      @system = Mikey
+      Lockdown::System.should_receive(:class_eval) do
+        @system
+      end
 
-      ActionController::Base.should_receive(:class_eval)
-      ActionController::Base.should_receive(:hide_action)
-
-      Lockdown::System.should_receive(:class_eval)
-
+      @rails.should_receive(:mixin_controller)
 
       @rails.mixin
     end
-
   end
+
+  describe "#mixin_controller" do
+
+    it "should inject itself" do
+      klass = mock("controller parent")
+
+      klass.should_receive(:class_eval)
+
+      klass.should_receive(:helper_method).with(:authorized?)
+
+      klass.should_receive(:hide_action).with(:set_current_user, :configure_lockdown, :check_request_authorization, :check_model_authorization)
+
+      klass.should_receive(:before_filter) 
+
+      klass.should_receive(:filter_parameter_logging)
+
+      klass.should_receive(:rescue_from)
+
+      @rails.mixin_controller(klass)
+    end
+  end
+
 end
 
 RAILS_ROOT = "/shibby/dibby/do"
