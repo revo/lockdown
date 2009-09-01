@@ -92,7 +92,7 @@ module Lockdown
             return remote_url?(url_parts[2])
           end
     
-          def access_denied(e)
+          def ld_access_denied(e)
 
             RAILS_DEFAULT_LOGGER.info "Access denied: #{e}"
 

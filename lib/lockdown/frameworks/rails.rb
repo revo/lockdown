@@ -45,7 +45,7 @@ module Lockdown
 
           klass.filter_parameter_logging :password, :password_confirmation
       
-          klass.rescue_from SecurityError, :with => proc{|e| access_denied(e)}
+          klass.rescue_from SecurityError, :with => proc{|e| ld_access_denied(e)}
         end
       end # class block
 
