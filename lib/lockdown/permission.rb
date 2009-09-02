@@ -1,7 +1,4 @@
 module Lockdown
-  class InvalidRuleContext < StandardError; end
-  class PermissionScopeCollision < StandardError; end
-
   class Controller
     attr_accessor :name, :access_methods, :only_methods, :except_methods
 
@@ -178,14 +175,14 @@ module Lockdown
 
     def set_as_public_access
       if protected_access?
-        raise PermissionScopeCollision, "Permission: #{name} already marked as protected and trying to set as public."
+        raise Lockdown::PermissionScopeCollision, "Permission: #{name} already marked as protected and trying to set as public."
       end
       @public_access = true
     end
 
     def set_as_protected_access
       if public_access?
-        raise PermissionScopeCollision, "Permission: #{name} already marked as public and trying to set as protected."
+        raise Lockdown::PermissionScopeCollision, "Permission: #{name} already marked as public and trying to set as protected."
       end
       @protected_access = true
     end
@@ -218,7 +215,7 @@ module Lockdown
       method_trace = caller.first;  
       calling_method = caller.first[/#{__FILE__}:(\d+):in `(.*)'/,2]
       unless current_context.allows?(calling_method)
-        raise InvalidRuleContext, "Method: #{calling_method} was called on wrong context #{current_context}. Allowed methods are: #{current_context.allowed_methods.join(',')}."
+        raise Lockdown::InvalidRuleContext, "Method: #{calling_method} was called on wrong context #{current_context}. Allowed methods are: #{current_context.allowed_methods.join(',')}."
       end
     end
   end

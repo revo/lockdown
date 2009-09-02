@@ -17,13 +17,6 @@ describe Lockdown::Rules do
 
   describe "#set_public_access" do
     it "should define the permission as public" do
-      @rules.set_permission(:user_management)
-      @rules.set_public_access(:user_management)
-    end
-  end
-
-  describe "#set_public_access" do
-    it "should define the permission as public" do
       @rules.set_permission(:home_page)
       @rules.set_public_access(:home_page)
       perm = @rules.permission_objects.find{|name, object| name == :home_page}
@@ -31,9 +24,11 @@ describe Lockdown::Rules do
     end
 
     it "should raise and InvalidRuleAssignment if permission does not exist" do
-      msg = "Permission not found: user_management"
-      lambda{@rules.set_public_access(:toy_management)}.should
-        raise_error(Lockdown::InvalidRuleAssignment, msg)
+      msg = "Permission not found: toy_management"
+
+      @rules.should_receive(:raise).with(Lockdown::InvalidRuleAssignment, msg)
+
+      @rules.set_public_access(:toy_management)
     end
   end
 

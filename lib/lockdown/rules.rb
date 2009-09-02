@@ -1,6 +1,4 @@
 module Lockdown
-  class InvalidRuleAssignment < StandardError; end
-
   module Rules
     attr_accessor :options
     attr_accessor :permissions
@@ -58,7 +56,7 @@ module Lockdown
           perm.set_as_public_access 
         else
           msg = "Permission not found: #{perm_symbol}"
-          raise InvalidRuleAssigment, msg
+          raise Lockdown::InvalidRuleAssignment, msg
         end
       end
     end
@@ -75,7 +73,7 @@ module Lockdown
           perm.set_as_protected_access 
         else
           msg = "Permission not found: #{perm_symbol}"
-          raise InvalidRuleAssigment, msg
+          raise Lockdown::InvalidRuleAssignment, msg
         end
       end
     end
@@ -290,7 +288,7 @@ module Lockdown
         perms.each do |perm|
           unless permission_exists?(perm)
             msg ="User Group: #{user_group}, permission not found: #{perm}"
-            raise InvalidRuleAssignment, msg
+            raise Lockdown::InvalidRuleAssignment, msg
           end
         end
       end
