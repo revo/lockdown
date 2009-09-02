@@ -14,6 +14,16 @@ module Lockdown
 
     alias login_with_group login_with_groups 
 
+    def login_with_permissions(*permissions_symbols)
+      access_rights = Lockdown::System.standard_authorized_user_rights
+      permissions_symbols.each do |ps|
+        access_rights << Lockdown::System.access_rights_for_permission(ps)
+      end
+      controller.session[:access_rights] = access_rights.flatten.uniq
+    end
+    
+    alias login_with_permission login_with_permissions    
+
     def login_standard
       login_user
     end
