@@ -62,9 +62,8 @@ describe Lockdown::Frameworks::Rails do
 
       klass.should_receive(:hide_action).with(:set_current_user, :configure_lockdown, :check_request_authorization, :check_model_authorization)
 
-
-      klass.should_receive(:before_filter) do |*args|
-        puts args.inspect
+      klass.should_receive(:before_filter).and_return do |c|
+        #not working yet. very frustrating trying to test this
       end
 
       klass.should_receive(:filter_parameter_logging)
