@@ -56,8 +56,10 @@ describe Lockdown::Rules do
 
     it "should raise and InvalidRuleAssignment if permission does not exist" do
       msg = "Permission not found: user_management"
-      lambda{@rules.set_protected_access(:user_management)}.should
-        raise_error(Lockdown::InvalidRuleAssignment, msg)
+
+      @rules.should_receive(:raise).with(Lockdown::InvalidRuleAssignment, msg)
+
+      @rules.set_protected_access(:user_management)
     end
   end
 
@@ -139,8 +141,94 @@ describe Lockdown::Rules do
     end
   end
 
-
   describe "#make_user_administrator" do
+    it "should add admin to user groups" do
+      ugc = mock('user_group_class',:find_or_create_by_name => :admin)
+      Lockdown.should_receive(:user_group_class).and_return(ugc)
+
+      usr = mock('user', :user_groups => [])
+
+      @rules.make_user_administrator(usr).should include(:admin)
+    end
+  end
+
+  describe "#access_rights_for_user" do
+    it "should array of rights for user who is not an admin" do
+      @rules.should_receive(:administrator?).and_return(false)
+
+      @rules.set_permission(:register_account).
+        with_controller(:users).
+        only_methods(:new, :create)
+
+      @rules.set_public_access(:register_account)
+
+      perm = @rules.set_permission(:perm_one).
+        with_controller("a_controller").
+        only_methods("show","edit","update")
+
+      ug = @rules.set_user_group(:ug_one, :perm_one)
+
+      @rules.should_receive(:set_model_access)
+      @rules.process_rules
+
+      usr = mock('user', :user_groups => [:ug_one])
+
+      @rules.access_rights_for_user(usr).
+        should == ["users/new", "users/create", "a_controller/show", "a_controller/edit", "a_controller/update"]
+    end
+  end
+
+  describe "#access_rights_for_user_group" do
+    it "should return array of rights for user_group" do
+      perm = @rules.set_permission(:perm_one).
+        with_controller("a_controller").
+        only_methods("show","edit","update")
+
+      ug = @rules.set_user_group(:ug_one, :perm_one)
+
+      @rules.should_receive(:set_model_access)
+      @rules.process_rules
+
+      @rules.access_rights_for_user_group(:ug_one).
+        should == ["a_controller/show", "a_controller/edit", "a_controller/update"]
+    end
+  end
+
+  describe "#access_rights_for_permission" do
+    it "should return array of rights for permission" do
+
+      perm = @rules.set_permission(:perm_one).
+        with_controller("a_controller").
+        only_methods("show","edit","update")
+
+      @rules.should_receive(:set_model_access)
+      @rules.process_rules
+
+      @rules.access_rights_for_permission(perm).
+        should == ["a_controller/show", "a_controller/edit", "a_controller/update"]
+    end
+  end
+
+  describe "#standard_authorized_user_rights" do
+    it "should receive public_access + protected_access" do
+      @rules.set_permission(:register_account).
+        with_controller(:users).
+        only_methods(:new, :create)
+
+      @rules.set_permission(:my_profile).
+        with_controller(:users).
+        only_methods(:show, :edit, :update)
+      
+
+      @rules.set_public_access(:register_account)
+      @rules.set_protected_access(:my_profile)
+
+      @rules.should_receive(:set_model_access)
+      @rules.process_rules
+
+      @rules.standard_authorized_user_rights.
+        should == ["users/new", "users/create", "users/show", "users/edit", "users/update"]
+    end
   end
 
   describe "#process_rules" do
