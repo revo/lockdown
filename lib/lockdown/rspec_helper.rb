@@ -9,6 +9,7 @@ module Lockdown
       user_group_symbols.each do |ugs|
         access_rights << Lockdown::System.access_rights_for_user_group(ugs)
       end
+      login_user
       controller.session[:access_rights] = access_rights.flatten
     end
 
@@ -19,6 +20,7 @@ module Lockdown
       permissions_symbols.each do |ps|
         access_rights << Lockdown::System.access_rights_for_permission(ps)
       end
+      login_user
       controller.session[:access_rights] = access_rights.flatten.uniq
     end
     
