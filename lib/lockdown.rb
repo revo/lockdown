@@ -1,5 +1,7 @@
 $:.unshift File.dirname(__FILE__)
 
+require File.join("lockdown", "errors")
+
 require File.join("lockdown", "helper")
 require File.join("lockdown", "session")
 require File.join("lockdown", "context")
