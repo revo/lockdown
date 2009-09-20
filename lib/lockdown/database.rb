@@ -20,7 +20,7 @@ module Lockdown
       
         maintain_user_groups
       rescue Exception => e
-        puts ">> Lockdown sync failed: #{e}" 
+        puts ">> Lockdown sync failed: #{e.backtrace.join("\n")}" 
       end
 
       # Create permissions not found in the database
@@ -74,9 +74,15 @@ module Lockdown
         puts ">> Lockdown: #{Lockdown::System.fetch(:user_group_model)} not in the db: #{name_str}, creating."
         ug = Lockdown.user_group_class.create(:name => name_str)
         #Inefficient, definitely, but shouldn't have any issues across orms.
+        #
         Lockdown::System.permissions_for_user_group(key).each do |perm|
-          p = ::Permission.find(:first, :conditions => ["name = ?", 
-                                Lockdown.get_string(perm)])
+
+          if Lockdown::System.permission_assigned_automatically?(perm)
+            puts ">> Permission #{perm} cannot be assigned to #{name_str}.  Already belongs to built in user group (public or protected)."
+            raise  InvalidPermissionAssignment, "Invalid permission assignment"
+          end
+
+          p = ::Permission.find(:first, :conditions => ["name = ?", Lockdown.get_string(perm)]) 
 
           ug_table = Lockdown.user_groups_hbtm_reference.to_s
           if "permissions" < ug_table
