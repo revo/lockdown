@@ -68,7 +68,7 @@ describe Lockdown::Database do
     it "should sync user group permissions for existing user group" do
       ug = mock('user group')
 
-     @user_group_class.should_receive(:find).
+      @user_group_class.should_receive(:find).
         with(:first, :conditions => ["name = ?", "User Group"]).
         and_return(ug)
       
@@ -93,6 +93,9 @@ describe Lockdown::Database do
 
       Lockdown::System.stub!(:permissions_for_user_group).
         and_return([:perm])
+
+      Lockdown::System.stub!(:permission_assigned_automatically?).
+        and_return(false)
 
       perm = mock('permission')
       perm.stub!(:id).and_return(3344)
