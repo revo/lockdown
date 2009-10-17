@@ -334,8 +334,6 @@ module Lockdown
 
       method_definition << "\n\tend"
 
-      #puts "method_definition:\n #{method_definition}"
-
       Lockdown.add_controller_method method_definition
     end
 

@@ -1,7 +1,8 @@
 $:.unshift File.dirname(__FILE__)
 
-require File.join("lockdown", "errors")
+require 'logger'
 
+require File.join("lockdown", "errors")
 require File.join("lockdown", "helper")
 require File.join("lockdown", "session")
 require File.join("lockdown", "context")
@@ -9,7 +10,6 @@ require File.join("lockdown", "permission")
 require File.join("lockdown", "database")
 require File.join("lockdown", "rules")
 require File.join("lockdown", "system")
-
 require File.join("lockdown", "references")
 
 module Lockdown
@@ -19,59 +19,66 @@ module Lockdown
   # current version is 1.3.0
   VERSION = '1.3.1'
 
-  # Returns the version string for the library.
-  def self.version
-    VERSION
-  end
+  class << self
+    attr_accessor :logger
 
-  def self.major_version
-    version.split('.')[0].to_i
-  end
+    # Returns the version string for the library.
+    def version
+      VERSION
+    end
 
-  def self.minor_version
-    version.split('.')[1].to_i
-  end
+    def major_version
+      version.split('.')[0].to_i
+    end
 
-  def self.patch_version
-    version.split('.')[2].to_i
-  end
+    def minor_version
+      version.split('.')[1].to_i
+    end
 
-  # Mixin Lockdown code to the appropriate framework and ORM
-  def self.mixin
-    if mixin_resource?("frameworks")
-      unless mixin_resource?("orms")
-        raise NotImplementedError, "ORM unknown to Lockdown!"
-      end
+    def patch_version
+      version.split('.')[2].to_i
+    end
 
-      if File.exists?(Lockdown.init_file)
-        puts "=> Requiring Lockdown rules engine: #{Lockdown.init_file} \n"
-        require Lockdown.init_file
+    # Mixin Lockdown code to the appropriate framework and ORM
+    def mixin
+      if mixin_resource?("frameworks")
+        unless mixin_resource?("orms")
+          raise NotImplementedError, "ORM unknown to Lockdown!"
+        end
+
+        if File.exists?(Lockdown.init_file)
+          Lockdown.logger.info "=> Requiring Lockdown rules engine: #{Lockdown.init_file} \n"
+          require Lockdown.init_file
+        else
+          Lockdown.logger.info "=> Note:: Lockdown couldn't find init file: #{Lockdown.init_file}\n"
+        end
       else
-        puts "=> Note:: Lockdown couldn't find init file: #{Lockdown.init_file}\n"
+        Lockdown.logger.info "=> Note:: Lockdown cannot determine framework and therefore is not active.\n"
       end
-    else
-      puts "=> Note:: Lockdown cannot determine framework and therefore is not active.\n"
-    end
-  end # mixin
+    end # mixin
 
-  private
+    private
 
-  def self.mixin_resource?(str)
-    wildcard_path = File.join( File.dirname(__FILE__), 'lockdown', str , '*.rb' ) 
-    Dir[wildcard_path].each do |f|
-      require f
-      module_name = File.basename(f).split(".")[0]
-      module_class = eval("Lockdown::#{str.capitalize}::#{Lockdown.camelize(module_name)}")
-      if module_class.use_me?
-        include module_class
-        return true
+    def mixin_resource?(str)
+      wildcard_path = File.join( File.dirname(__FILE__), 'lockdown', str , '*.rb' ) 
+      Dir[wildcard_path].each do |f|
+        require f
+        module_name = File.basename(f).split(".")[0]
+        module_class = eval("Lockdown::#{str.capitalize}::#{Lockdown.camelize(module_name)}")
+        if module_class.use_me?
+          include module_class
+          return true
+        end
       end
-    end
-    false
-  end # mixin_resource?
+      false
+    end # mixin_resource?
+  end # class block
+
+  self.logger = Logger.new(STDOUT)
+
 end # Lockdown
 
-puts "=> Mixing in Lockdown version: #{Lockdown.version} \n"
+Lockdown.logger.info "=> Mixing in Lockdown version: #{Lockdown.version} \n"
 Lockdown.mixin
 
 
