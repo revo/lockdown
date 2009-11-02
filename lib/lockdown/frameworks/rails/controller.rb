@@ -94,7 +94,7 @@ module Lockdown
     
           def ld_access_denied(e)
 
-            RAILS_DEFAULT_LOGGER.info "Access denied: #{e}"
+            Lockdown.logger.info "Access denied: #{e}"
 
             if Lockdown::System.fetch(:logout_on_access_violation)
               reset_session
