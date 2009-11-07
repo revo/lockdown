@@ -86,6 +86,9 @@ module Lockdown
     def set_user_group(name, *perms)
       user_groups[name] ||= []
       perms.each do |perm|
+        if permission_assigned_automatically?(perm)
+          raise Lockdown::InvalidPermissionAssignment, "Permission is assigned automatically.  Please remove it from #{name} user group"
+        end
         user_groups[name].push(perm)
       end
     end
