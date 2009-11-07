@@ -12,6 +12,12 @@ module Lockdown
       process_rules
 
       Lockdown::Database.sync_with_db unless skip_sync?
+
+      @initialized = true
+    end
+
+    def self.initialized?
+      @initialized
     end
 
     def self.fetch(key)

@@ -15,6 +15,7 @@ module Lockdown
         module Lock
 
           def configure_lockdown
+            Lockdown.maybe_parse_init
             check_session_expiry
             store_location
           end

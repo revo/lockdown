@@ -44,17 +44,21 @@ module Lockdown
         unless mixin_resource?("orms")
           raise NotImplementedError, "ORM unknown to Lockdown!"
         end
-
-        if File.exists?(Lockdown.init_file)
-          Lockdown.logger.info "=> Requiring Lockdown rules engine: #{Lockdown.init_file} \n"
-          require Lockdown.init_file
-        else
-          Lockdown.logger.info "=> Note:: Lockdown couldn't find init file: #{Lockdown.init_file}\n"
-        end
       else
         Lockdown.logger.info "=> Note:: Lockdown cannot determine framework and therefore is not active.\n"
       end
     end # mixin
+
+    def maybe_parse_init
+      return if Lockdown::System.initialized?
+
+      if File.exists?(Lockdown.init_file)
+        Lockdown.logger.info "=> Requiring Lockdown rules engine: #{Lockdown.init_file} \n"
+        require Lockdown.init_file
+      else
+        Lockdown.logger.info "=> Note:: Lockdown couldn't find init file: #{Lockdown.init_file}\n"
+      end
+    end
 
     private
 
