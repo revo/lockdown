@@ -54,7 +54,7 @@ module Lockdown
 
       if File.exists?(Lockdown.init_file)
         Lockdown.logger.info "=> Requiring Lockdown rules engine: #{Lockdown.init_file} \n"
-        require Lockdown.init_file
+        load Lockdown.init_file
       else
         Lockdown.logger.info "=> Note:: Lockdown couldn't find init file: #{Lockdown.init_file}\n"
       end
