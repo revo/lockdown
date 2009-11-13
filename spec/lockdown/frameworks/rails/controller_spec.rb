@@ -129,6 +129,13 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
       URI.stub!(:split).with(@a_path).and_return(a_path_parts)
     end
 
+    it "should call add_lockdown_session_values unless caching" do
+      Lockdown.stub(:caching?).and_return(false)
+      @controller.should_receive(:add_lockdown_session_values)
+
+      @controller.send(:authorized?,nil)
+    end
+
     it "should return false if url is nil" do
       @controller.send(:authorized?,nil).should be_false
     end
