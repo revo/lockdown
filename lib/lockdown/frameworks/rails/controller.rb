@@ -63,6 +63,9 @@ module Lockdown
           end
       
           def authorized?(url, method = nil)
+            # Reset access unless caching?
+            add_lockdown_session_values unless Lockdown.caching?
+
             return false unless url
 
             return true if current_user_is_admin?

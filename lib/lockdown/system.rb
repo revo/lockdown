@@ -13,7 +13,7 @@ module Lockdown
 
       Lockdown::Database.sync_with_db unless skip_sync?
 
-      @initialized = true if Lockdown.caching_classes?
+      @initialized = true if Lockdown.caching?
     end
 
     def self.initialized?

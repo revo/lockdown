@@ -115,12 +115,12 @@ describe Lockdown::Frameworks::Rails::Environment do
 
   describe "#controller_parent" do
     it "should return ActionController::Base if not caching classes" do
-      @env.should_receive(:caching_classes?).and_return(false)
+      @env.should_receive(:caching?).and_return(false)
       @env.controller_parent.should == ActionController::Base
     end
 
     it "should return ApplicationController if caching classes" do
-      @env.should_receive(:caching_classes?).and_return(true)
+      @env.should_receive(:caching?).and_return(true)
       @env.controller_parent.should == ApplicationController
     end
 

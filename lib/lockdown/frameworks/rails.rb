@@ -66,14 +66,14 @@ module Lockdown
         # cache_classes is true in production and testing, need to
         # modify the ApplicationController 
         def controller_parent
-          if caching_classes?
+          if caching?
             ApplicationController
           else
             ActionController::Base
           end
         end
         
-        def caching_classes?
+        def caching?
           ::Rails.configuration.cache_classes
         end
 

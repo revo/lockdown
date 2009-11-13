@@ -20,6 +20,8 @@ describe Lockdown::System do
  
       Lockdown::Database.should_receive :sync_with_db 
      
+      Lockdown.should_receive :caching?
+
       Lockdown::System.configure do
       end
     end

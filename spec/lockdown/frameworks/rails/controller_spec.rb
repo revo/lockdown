@@ -37,7 +37,8 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
   end
   
   describe "#configure_lockdown" do
-    it "should call check_session_expiry and store_location" do
+    it "should call Lockdown.maybe_parse_init, check_session_expiry and store_location" do
+      Lockdown.should_receive(:maybe_parse_init)
       @controller.should_receive(:check_session_expiry)
       @controller.should_receive(:store_location)
 
@@ -115,6 +116,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
       request = mock("request")
       request.stub!(:method).and_return(:get)
+      Lockdown.stub(:caching?).and_return(true)
       @controller.stub!(:params).and_return({})
       @controller.stub!(:request).and_return(request)
 
