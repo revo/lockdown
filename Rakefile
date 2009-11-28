@@ -3,6 +3,7 @@ require 'rake'
 require 'rcov'
 require 'spec/rake/spectask'
 
+require 'lib/lockdown.rb'
 task :default => 'rcov'
 
 desc "Flog your code for Justice!"
@@ -22,6 +23,7 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gemspec|
     gemspec.name = "lockdown"
+    gemspec.version = Lockdown.version
     gemspec.rubyforge_project = "lockdown"
     gemspec.summary = "Authorization system for Rails 2.x"
     gemspec.description = "Restrict access to your controller actions.  Supports basic model level restrictions as well"
