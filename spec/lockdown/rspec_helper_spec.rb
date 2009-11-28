@@ -8,7 +8,6 @@ class TestAController
 end
 
 class RspecEnv
-  include Lockdown::RspecHelper
 end
 
 describe Lockdown::RspecHelper do
@@ -24,6 +23,8 @@ describe Lockdown::RspecHelper do
 
     usr_group = mock :usr_group
 
+    Lockdown.should_receive(:maybe_parse_init)
+    RspecEnv.send :include, Lockdown::RspecHelper
     @rspec_env = RspecEnv.new
     @rspec_env.stub!(:controller).and_return(@controller)
     @rspec_env.stub!(:mock_user).and_return(usr)
