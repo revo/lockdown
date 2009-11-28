@@ -256,7 +256,11 @@ module Lockdown
       if has_user_group?(sym)
         permissions = user_groups[sym] || []
       else
-        permissions = ug.permissions
+        if ug.respond_to?(:permissions)
+          permissions = ug.permissions
+        else
+          raise GroupUndefinedError, "#{ug} not found in init.rb and does not respond to #permissions"
+        end
       end
 
 
