@@ -1,5 +1,9 @@
 module Lockdown
   module RspecHelper
+    def self.included(mod)
+      Lockdown.maybe_parse_init
+    end
+
     def login_admin
       login_user(:admin)
     end
@@ -53,6 +57,7 @@ module Lockdown
       methods = controller.send :action_methods
 
       if excepts = hash.delete(:except)
+        excepts = Array.new(excepts)
         methods.reject!{|m| excepts.include?(m.to_sym)}
       end
 
@@ -86,11 +91,12 @@ module Lockdown
 
     # You may want to override this method
     def mock_user
-      mock  :user, 
-            :first_name => 'John',
-            :last_name  => 'Smith',
-            :password   => "mysecret",
-            :password_confirmation   => "mysecret"
+      mock_model  User,
+                  :user_groups => [],
+                  :first_name => 'John',
+                  :last_name  => 'Smith',
+                  :password   => "mysecret",
+                  :password_confirmation   => "mysecret"
     end
 
     def create_user_session
