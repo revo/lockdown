@@ -6,4 +6,6 @@ module Lockdown
   class PermissionScopeCollision < StandardError; end
 
   class InvalidPermissionAssignment < StandardError; end
+
+  class GroupUndefinedError < StandardError; end
 end
