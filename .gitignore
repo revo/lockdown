@@ -4,4 +4,3 @@ pkg/**
 doc/**
 email.txt
 coverage/**
-lockdown.gemspec
