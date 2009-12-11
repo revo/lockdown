@@ -47,7 +47,8 @@ class LockdownGenerator < Rails::Generator::Base
   end
 
   def manifest
-    record do |@m|
+    record do |m|
+      @m = m
       # Ensure appropriate folder(s) exists
       @m.directory @view_path
       @m.directory @controller_path

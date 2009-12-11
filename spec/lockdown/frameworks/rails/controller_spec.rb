@@ -14,24 +14,6 @@ describe Lockdown::Frameworks::Rails::Controller do
     @lockdown = mock("lockdown")
   end
 
-  describe "#available_actions" do
-    it "should return action_methods" do
-      post_controller = mock("PostController")
-      post_controller.stub!(:action_methods).and_return(@actions)
-
-      @controller.available_actions(post_controller).
-        should == @actions
-    end
-
-    it "should eql public_instance_methods - hidden_actions unless action_methods" do
-      post_controller = mock("PostController")
-      post_controller.stub!(:public_instance_methods).and_return(["m1", "m2", "h1"])
-      post_controller.stub!(:hidden_actions).and_return(["h1"])
-      @controller.available_actions(post_controller).
-        should == ["m1", "m2"]
-    end
-  end
-
   describe "#controller_name" do
     it "should return action_methods" do
       post_controller = mock("PostController")
@@ -55,7 +37,8 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
   end
   
   describe "#configure_lockdown" do
-    it "should call check_session_expiry and store_location" do
+    it "should call Lockdown.maybe_parse_init, check_session_expiry and store_location" do
+      Lockdown.should_receive(:maybe_parse_init)
       @controller.should_receive(:check_session_expiry)
       @controller.should_receive(:store_location)
 
@@ -88,7 +71,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
   describe "#path_allowed" do
     it "should return false for an invalid path" do
-      @controller.path_allowed?("/no/good").should be_false
+      @controller.send(:path_allowed?,"/no/good").should be_false
     end
   end
 
@@ -96,7 +79,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
     it "should set expiry if null" do
       Lockdown::System.stub!(:fetch).with(:session_timeout).and_return(10)
       @session[:expiry_time].should be_nil
-      @controller.check_session_expiry
+      @controller.send(:check_session_expiry)
       @session[:expiry_time].should_not be_nil
     end
   end
@@ -108,7 +91,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
       @controller.stub!(:request).and_return(request)
 
       @controller.stub!(:sent_from_uri).and_return("/blop")
-      @controller.store_location
+      @controller.send(:store_location)
 
       @session[:prevpage].should == ''
       @session[:thispage].should == '/blop'
@@ -122,7 +105,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
       @controller.stub!(:request).and_return(request)
 
-      @controller.sent_from_uri.should == "/blip"
+      @controller.send(:sent_from_uri).should == "/blip"
     end
   end
 
@@ -133,6 +116,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
       request = mock("request")
       request.stub!(:method).and_return(:get)
+      Lockdown.stub(:caching?).and_return(true)
       @controller.stub!(:params).and_return({})
       @controller.stub!(:request).and_return(request)
 
@@ -145,21 +129,28 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
       URI.stub!(:split).with(@a_path).and_return(a_path_parts)
     end
 
+    it "should call add_lockdown_session_values unless caching" do
+      Lockdown.stub(:caching?).and_return(false)
+      @controller.should_receive(:add_lockdown_session_values)
+
+      @controller.send(:authorized?,nil)
+    end
+
     it "should return false if url is nil" do
-      @controller.authorized?(nil).should be_false
+      @controller.send(:authorized?,nil).should be_false
     end
 
     it "should return true if current_user_is_admin" do
       @controller.stub!(:current_user_is_admin?).and_return(true)
-      @controller.authorized?(@a_path).should be_true
+      @controller.send(:authorized?,@a_path).should be_true
     end
 
     it "should return false if path not in access_rights" do
-      @controller.authorized?(@a_path).should be_false
+      @controller.send(:authorized?,@a_path).should be_false
     end
 
     it "should return true if path is in access_rights" do
-      @controller.authorized?(@sample_url).should be_true
+      @controller.send(:authorized?,@sample_url).should be_true
     end
 
   end
@@ -170,41 +161,41 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
   describe "#path_from_hash" do
     it "should return controller/action string" do
       hash = {:controller => "users", :action => "show", :id => "1"}
-      @controller.path_from_hash(hash).should == "users/show"
+      @controller.send(:path_from_hash,hash).should == "users/show"
     end
   end
 
   describe "#remote_url?" do
     it "should return false if domain is nil" do
-      @controller.remote_url?.should be_false
+      @controller.send(:remote_url?).should be_false
     end
 
     it "should return false if domain matches request domain" do
       request = mock("request")
       request.stub!(:host).and_return("stonean.com")
       @controller.stub!(:request).and_return(request)
-      @controller.remote_url?("stonean.com").should be_false
+      @controller.send(:remote_url?,"stonean.com").should be_false
     end
 
     it "should return true if subdomain differs" do
       request = mock("request")
       request.stub!(:host).and_return("blog.stonean.com")
       @controller.stub!(:request).and_return(request)
-      @controller.remote_url?("stonean.com").should be_true
+      @controller.send(:remote_url?,"stonean.com").should be_true
     end
 
     it "should return true if host doesn't match  domain" do
       request = mock("request")
       request.stub!(:host).and_return("stonean.com")
       @controller.stub!(:request).and_return(request)
-      @controller.remote_url?("google.com").should be_true
+      @controller.send(:remote_url?,"google.com").should be_true
     end
   end
 
   describe "#redirect_back_or_default" do
     it "should redirect to default without session[:prevpage]" do
       @controller.should_receive(:redirect_to).with("/")
-      @controller.redirect_back_or_default("/")
+      @controller.send :redirect_back_or_default, "/"
     end
 
     it "should redirect to session[:prevpage]" do
@@ -212,7 +203,7 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
       path.stub!(:blank?).and_return(false)
       @session[:prevpage] = path
       @controller.should_receive(:redirect_to).with(path)
-      @controller.redirect_back_or_default("/")
+      @controller.send :redirect_back_or_default, "/"
     end
   end
 

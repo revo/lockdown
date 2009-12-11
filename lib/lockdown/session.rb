@@ -9,6 +9,8 @@ module Lockdown
       if user
         session[:access_rights] = Lockdown::System.access_rights_for_user(user)
         session[:current_user_id] = user.id
+      else
+        session[:access_rights] = Lockdown::System.public_access
       end
     end
 

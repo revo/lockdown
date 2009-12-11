@@ -3,9 +3,10 @@ require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
 describe Lockdown::Frameworks::Rails do
   before do
     @rails = Lockdown::Frameworks::Rails
+
     @rails.stub!(:use_me?).and_return(true)
 
-    @lockdown = mock("lockdown")
+    @lockdown = mock("lockdown")        
   end
 
 
@@ -22,33 +23,69 @@ describe Lockdown::Frameworks::Rails do
 
   describe "#mixin" do
     it "should perform class_eval on controller view and system to inject itself" do
-      module ActionController; class Base; end end
-      module ActionView; class Base; end end
 
-      Lockdown.stub!(:controller_parent).and_return(ActionController::Base)
-      Lockdown.stub!(:view_helper).and_return(ActionView::Base)
+      @view_helper = Mikey
+      @view_helper.should_receive(:include).
+        with( Lockdown::Frameworks::Rails::View )
 
-      ActionView::Base.should_receive(:class_eval)
+      Lockdown.should_receive(:view_helper) do 
+        @view_helper
+      end
 
-      ActionController::Base.should_receive(:helper_method)
-      ActionController::Base.should_receive(:before_filter)
-      ActionController::Base.should_receive(:filter_parameter_logging)
-      ActionController::Base.should_receive(:rescue_from)
+      @system = Mikey
+      @system.should_receive(:extend).
+        with( Lockdown::Frameworks::Rails::System )
 
-      ActionController::Base.should_receive(:class_eval)
+      Lockdown.should_receive(:system) do 
+        @system
+      end
 
-      Lockdown::System.should_receive(:class_eval)
-
+      @rails.should_receive(:mixin_controller)
 
       @rails.mixin
     end
 
   end
+
+  describe "#mixin_controller" do
+
+    it "should inject itself" do
+      klass = Mikey
+
+      klass.should_receive(:include).
+        with(Lockdown::Session)
+
+      klass.should_receive(:include).
+        with(Lockdown::Frameworks::Rails::Controller::Lock)
+
+      klass.should_receive(:helper_method).with(:authorized?)
+
+      klass.should_receive(:hide_action).with(:set_current_user, :configure_lockdown, :check_request_authorization, :check_model_authorization)
+
+      klass.should_receive(:before_filter).and_return do |c|
+        #not working yet. very frustrating trying to test this
+      end
+
+      klass.should_receive(:filter_parameter_logging)
+
+      klass.should_receive(:rescue_from)
+
+      @rails.mixin_controller(klass)
+    end
+  end
+
 end
+
+RAILS_ROOT = "/shibby/dibby/do"
+
+module ActionController; class Base; end end
+
+class ApplicationController; end
+
+module ActionView; class Base; end end
 
 describe Lockdown::Frameworks::Rails::Environment do
 
-  RAILS_ROOT = "/shibby/dibby/do"
   before do
     @env = class Test; extend Lockdown::Frameworks::Rails::Environment; end
   end
@@ -77,16 +114,20 @@ describe Lockdown::Frameworks::Rails::Environment do
   end
 
   describe "#controller_parent" do
-    it "should return ActionController::Base" do
-      module ActionController; class Base; end end
-
+    it "should return ActionController::Base if not caching classes" do
+      @env.should_receive(:caching?).and_return(false)
       @env.controller_parent.should == ActionController::Base
     end
+
+    it "should return ApplicationController if caching classes" do
+      @env.should_receive(:caching?).and_return(true)
+      @env.controller_parent.should == ApplicationController
+    end
+
   end
 
   describe "#view_helper" do
     it "should return ActionView::Base" do
-      module ActionView; class Base; end end
       
       @env.view_helper.should == ActionView::Base
     end
@@ -96,80 +137,27 @@ end
 describe Lockdown::Frameworks::Rails::System do
   class Test 
     extend Lockdown::Frameworks::Rails::System
-    class << self
-      attr_accessor :controller_classes
-    end
-  end
-
-  module Rails
-    module VERSION
-      MAJOR = 2
-      MINOR = 2
-      TINY  = 2
-    end    
   end
 
   before do
     @env = Test
-    @env.controller_classes = {}
   end
 
   describe "#skip_sync?" do
-  end
-
-  describe "#load_controller_classes" do
-  end
-
-  describe "#maybe_load_framework_controller_parent" do
-    it "should call require_or_load with application.rb < 2.3" do
-      @env.should_receive(:require_or_load).with("application.rb")
-
-      @env.maybe_load_framework_controller_parent
+    it "should return true if env == skip sync" do
+      Lockdown::System.stub!(:fetch).with(:skip_db_sync_in).and_return(['test'])
+      @env.should_receive(:framework_environment).and_return("test")
+      
+      @env.skip_sync?.should == true
     end
 
-    it "should call require_or_load with application_controller.rb >= 2.3" do
-      module Rails
-        module VERSION 
-          MINOR = 3
-          TINY  = 0
-        end    
-      end
-
-      @env.should_receive(:require_or_load).with("application_controller.rb")
-
-      @env.maybe_load_framework_controller_parent
+    it "should return false if env not in skip_sync" do
+      Lockdown::System.stub!(:fetch).with(:skip_db_sync_in).and_return(['test', 'ci'])
+      @env.should_receive(:framework_environment).and_return("qa")
+      
+      @env.skip_sync?.should == false
     end
+    
   end
 
-  describe "#lockdown_load" do
-    it "should add class to controller classes" do
-      @env.stub!(:class_name_from_file).and_return("controller_class")
-      Lockdown.stub!(:qualified_const_get).and_return(:controller_class)
-      @env.stub!(:require_or_load)
-
-      @env.lockdown_load("controller_file")
-
-      @env.controller_classes["ControllerFile"].should == :controller_class
-    end
-  end
-
-  describe "#require_or_load" do
-    it "should use Dependencies if not defined in ActiveSupport" do
-      module ActiveSupport; end
-      Dependencies = mock("dependencies") unless defined?(Dependencies)
-
-      Dependencies.should_receive(:require_or_load).with("controller_file")
-
-      @env.require_or_load("controller_file")
-    end
-
-    it "should use ActiveSupport::Dependencies if defined" do
-      module ActiveSupport; class Dependencies; end end
-
-      ActiveSupport::Dependencies.should_receive(:require_or_load).
-        with("controller_file")
-
-      @env.require_or_load("controller_file")
-    end
-  end
 end

@@ -1,13 +1,19 @@
 require File.join(File.dirname(__FILE__), %w[.. spec_helper])
 
+class Permission; end;
+
 describe Lockdown::Database do
-  before do
+  before do    
     Lockdown::System.stub!(:get_permissions).and_return([:permission])
     Lockdown::System.stub!(:get_user_groups).and_return([:user_group])
+    @user_group_class = mock(:table_exists? => true, :find => false)
+    Lockdown.stub!(:user_group_class).and_return @user_group_class
+
   end
 
   describe "#sync_with_db" do
     it "should call create_new_permissions, delete_extinct_permissions and maintain_user_groups" do
+      Permission.stub!(:table_exists?).and_return(true)
       Lockdown::Database.should_receive :create_new_permissions
       Lockdown::Database.should_receive :delete_extinct_permissions
       Lockdown::Database.should_receive :maintain_user_groups
@@ -20,7 +26,6 @@ describe Lockdown::Database do
     it "should create permission from @permissions" do
       Lockdown::System.stub!(:permission_assigned_automatically?).and_return(false)
 
-      Permission = mock('Permission') unless defined?(Permission)
       Permission.stub!(:find).and_return(false)
       Permission.should_receive(:create).with(:name => 'Permission')
 
@@ -52,9 +57,7 @@ describe Lockdown::Database do
     end
 
     it "should create user group for non-existent user group" do
-      UserGroup.should_receive(:find).
-        with(:first, :conditions => ["name = ?", "User Group"]).
-        and_return(false)
+      @user_group_class.should_receive(:find).and_return(false)
       
       Lockdown::Database.should_receive(:create_user_group).
         with("User Group",:user_group)
@@ -65,7 +68,7 @@ describe Lockdown::Database do
     it "should sync user group permissions for existing user group" do
       ug = mock('user group')
 
-      UserGroup.should_receive(:find).
+      @user_group_class.should_receive(:find).
         with(:first, :conditions => ["name = ?", "User Group"]).
         and_return(ug)
       
@@ -84,14 +87,15 @@ describe Lockdown::Database do
       ug = mock('user group')
       ug.stub!(:id).and_return(123)
 
-      UserGroup = mock('UserGroup') unless defined?(UserGroup)
-
-      UserGroup.should_receive(:create).
+      @user_group_class.should_receive(:create).
         with(:name => "some group").
         and_return(ug)
 
       Lockdown::System.stub!(:permissions_for_user_group).
         and_return([:perm])
+
+      Lockdown::System.stub!(:permission_assigned_automatically?).
+        and_return(false)
 
       perm = mock('permission')
       perm.stub!(:id).and_return(3344)

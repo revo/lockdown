@@ -14,6 +14,19 @@ describe Lockdown::Session do
 
     @controller.stub!(:session).and_return(@session)
   end
+  
+  describe "#logged_in?" do
+    it "should return false withou current_user_id" do
+      @controller.send(:logged_in?).should == false
+    end
+  end
+
+  describe "#current_user_id" do
+    it "should return false withou current_user_id" do
+      @session[:current_user_id] = 2
+      @controller.send(:current_user_id).should == 2
+    end
+  end
 
   describe "#nil_lockdown_values" do
     it "should nil access_rights" do
@@ -64,8 +77,9 @@ describe Lockdown::Session do
     it "should set the access_rights from the user list" do
       array  = ["posts/index", "posts/show"]
       Lockdown::System.stub!(:access_rights_for_user).and_return(array)
-      @controller.stub!(:current_user).and_return(:user_object)
-      @controller.send(:add_lockdown_session_values)
+      usr = mock('user')
+      usr.should_receive(:id).and_return(1234)
+      @controller.send(:add_lockdown_session_values, usr)
       @session[:access_rights].should == array
     end
   end
@@ -85,5 +99,14 @@ describe Lockdown::Session do
   end
 
   describe "#session_access_rights_include?" do
+    it "should return true for posts/index" do
+      @controller.send(:session_access_rights_include?,'posts/index').
+        should == true
+    end
+
+    it "should return false for pages/index" do
+      @controller.send(:session_access_rights_include?,'pages/index').
+        should == false
+    end
   end
 end

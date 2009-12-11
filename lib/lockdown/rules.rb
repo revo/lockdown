@@ -1,11 +1,8 @@
 module Lockdown
-  class InvalidRuleAssignment < StandardError; end
-
   module Rules
     attr_accessor :options
     attr_accessor :permissions
     attr_accessor :user_groups
-    attr_accessor :controller_classes
 
     attr_reader :protected_access 
     attr_reader :public_access
@@ -19,7 +16,6 @@ module Lockdown
 
       @permission_objects = {}
 
-      @controller_classes = []
       @public_access      = []
       @protected_access   = []
 
@@ -32,7 +28,9 @@ module Lockdown
         :successful_login_path => "/",
         :subdirectory => nil,
         :skip_db_sync_in => ["test"],
-        :link_separator => ' | '
+        :link_separator => ' | ',
+        :user_group_model => "UserGroup",
+        :user_model => "User" 
       }
     end
 
@@ -53,12 +51,12 @@ module Lockdown
     #
     def set_public_access(*perms)
       perms.each do |perm_symbol|
-        perm = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+        perm = find_permission_object(perm_symbol)
         if perm
-          perm[1].set_as_public_access 
+          perm.set_as_public_access 
         else
           msg = "Permission not found: #{perm_symbol}"
-          raise InvalidRuleAssigment, msg
+          raise Lockdown::InvalidRuleAssignment, msg
         end
       end
     end
@@ -70,12 +68,12 @@ module Lockdown
     #
     def set_protected_access(*perms)
       perms.each do |perm_symbol|
-        perm = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+        perm = find_permission_object(perm_symbol)
         if perm
-          perm[1].set_as_protected_access 
+          perm.set_as_protected_access 
         else
           msg = "Permission not found: #{perm_symbol}"
-          raise InvalidRuleAssigment, msg
+          raise Lockdown::InvalidRuleAssignment, msg
         end
       end
     end
@@ -88,6 +86,9 @@ module Lockdown
     def set_user_group(name, *perms)
       user_groups[name] ||= []
       perms.each do |perm|
+        if permission_assigned_automatically?(perm)
+          raise Lockdown::InvalidPermissionAssignment, "Permission is assigned automatically.  Please remove it from #{name} user group"
+        end
         user_groups[name].push(perm)
       end
     end
@@ -109,13 +110,15 @@ module Lockdown
     alias_method :has_permission?, :permission_exists?
     
     # returns true if the permission is public
-    def public_access?(permmision_symbol)
-      public_access.include?(permmision_symbol)
+    def public_access?(perm_symbol)
+      obj = find_permission_object(perm_symbol)
+      obj.nil? ? false : obj.public_access? 
     end
 
     # returns true if the permission is public
-    def protected_access?(permmision_symbol)
-      protected_access.include?(permmision_symbol)
+    def protected_access?(perm_symbol)
+      obj = find_permission_object(perm_symbol)
+      obj.nil? ? false : obj.protected_access?
     end
 
     # These permissions are assigned by the system 
@@ -144,7 +147,8 @@ module Lockdown
     # Pass in a user object to be associated to the administrator user group 
     # The group will be created if it doesn't exist
     def make_user_administrator(usr)
-      usr.user_groups << UserGroup.
+      user_groups = usr.send(Lockdown.user_groups_hbtm_reference)
+      user_groups << Lockdown.user_group_class.
         find_or_create_by_name(Lockdown.administrator_group_string)
     end
 
@@ -161,12 +165,22 @@ module Lockdown
 
       rights = standard_authorized_user_rights
         
-      usr.user_groups.each do |grp|
+      user_groups = usr.send(Lockdown.user_groups_hbtm_reference)
+      user_groups.each do |grp|
         permissions_for_user_group(grp).each do |perm|
           rights += access_rights_for_permission(perm) 
         end
       end
       rights
+    end
+
+    # Return array of controller/action for a user group
+    def access_rights_for_user_group(user_group_sym)
+      res = []
+      permissions_for_user_group(user_group_sym).each do |perm|
+        res << access_rights_for_permission(perm)
+      end
+      res.flatten
     end
 
     # Return array of controller/action for a permission
@@ -186,7 +200,8 @@ module Lockdown
 
     # Pass in user object and symbol for name of user group
     def user_has_user_group?(usr, sym)
-      usr.user_groups.any? do |ug|
+      user_groups = usr.send(Lockdown.user_groups_hbtm_reference)
+      user_groups.any? do |ug|
         Lockdown.convert_reference_name(ug.name) == sym
       end
     end
@@ -196,17 +211,23 @@ module Lockdown
     # him/her self.
     def user_groups_assignable_for_user(usr)
       return [] if usr.nil?
-        
+      ug_table = Lockdown.user_groups_hbtm_reference.to_s
       if administrator?(usr)
-        UserGroup.find_by_sql <<-SQL
-          select user_groups.* from user_groups order by user_groups.name
+        Lockdown.user_group_class.find_by_sql <<-SQL
+          select #{ug_table}.* from #{ug_table} order by #{ug_table}.name
         SQL
       else
-        UserGroup.find_by_sql <<-SQL
-            select user_groups.* from user_groups, user_groups_users
-             where user_groups.id = user_groups_users.user_group_id
-             and user_groups_users.user_id = #{usr.id}	 
-             order by user_groups.name
+        usr_table = Lockdown.users_hbtm_reference.to_s
+        if usr_table < ug_table
+          join_table = "#{usr_table}_#{ug_table}"
+        else
+          join_table = "#{ug_table}_#{usr_table}"
+        end
+        Lockdown.user_group_class.find_by_sql <<-SQL
+            select #{ug_table}.* from #{ug_table}, #{join_table}
+             where #{ug_table}.id = #{join_table}.#{Lockdown.user_group_id_reference}
+             and #{join_table}.#{Lockdown.user_id_reference} = #{usr.id}	 
+             order by #{ug_table}.name
         SQL
       end
     end
@@ -235,7 +256,11 @@ module Lockdown
       if has_user_group?(sym)
         permissions = user_groups[sym] || []
       else
-        permissions = ug.permissions
+        if ug.respond_to?(:permissions)
+          permissions = ug.permissions
+        else
+          raise GroupUndefinedError, "#{ug} not found in init.rb and does not respond to #permissions"
+        end
       end
 
 
@@ -260,19 +285,9 @@ module Lockdown
 
     private
 
-    def parse_permissions
-      permission_objects.each do |name, perm|
-        @permissions[perm.name] ||= []
-        perm.controllers.each do |name, controller|
-          @permissions[perm.name] |= controller.access_methods
-
-          if perm.public_access?
-            @public_access |= controller.access_methods
-          elsif perm.protected_access?
-            @protected_access |= controller.access_methods
-          end
-        end
-      end
+    def find_permission_object(perm_symbol)
+      obj = permission_objects.find{|name, pobj| pobj.name == perm_symbol}
+      obj[1] if obj
     end
 
     def validate_user_groups
@@ -280,10 +295,78 @@ module Lockdown
         perms.each do |perm|
           unless permission_exists?(perm)
             msg ="User Group: #{user_group}, permission not found: #{perm}"
-            raise InvalidRuleAssignment, msg
+            raise Lockdown::InvalidRuleAssignment, msg
           end
         end
       end
+    end
+
+    def parse_permissions
+      permission_objects.each do |name, perm|
+        @permissions[perm.name] ||= []
+        set_controller_access(perm)
+      end
+
+      set_model_access
+    end
+
+    def set_controller_access(perm)
+      perm.controllers.each do |name, controller|
+        controller.set_access_methods
+
+        @permissions[perm.name] |= controller.access_methods
+
+        if perm.public_access?
+          @public_access |= controller.access_methods
+        elsif perm.protected_access?
+          @protected_access |= controller.access_methods
+        end
+      end
+    end
+
+    def set_model_access
+      method_definition =  "\tdef check_model_authorization\n\t#This method will check for access to model resources\n"
+
+      permission_objects.each do |name, perm|
+        next if perm.models.empty?
+
+        #Set filter for each controller
+        perm.controllers.each do |controller_name, controller|
+          #Set filter for each model on controller
+          perm.models.each do |model_name, model|
+            method_definition << define_restrict_model_access(controller, model)
+          end
+        end
+      end
+
+      method_definition << "\n\tend"
+
+      Lockdown.add_controller_method method_definition
+    end
+
+    def define_restrict_model_access(controller, model)
+      controller_class = Lockdown.fetch_controller_class(controller.name)
+
+      methods = controller.
+                  access_methods.
+                    collect do |am| 
+                      am[am.index('/') + 1..-1].to_sym if am.index('/')
+                    end.compact.inspect
+
+      return <<-RUBY
+        if controller_name == "#{controller.name}" 
+          if #{methods}.include?(action_name.to_sym)
+            unless instance_variable_defined?(:@#{model.name})
+              @#{model.name} = #{model.class_name}.find(params[#{model.param.inspect}])
+            end
+            # Need to make sure we find the model first before checking admin status. 
+            return true if current_user_is_admin? 
+            unless @#{model.name}.#{model.model_method}.#{model.association}(#{model.controller_method})
+              raise SecurityError, "Access to #\{action_name\} denied to #{model.name}.id #\{@#{model.name}.id\}"
+            end
+          end
+        end
+      RUBY
     end
   end
 end

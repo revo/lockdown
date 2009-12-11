@@ -1,25 +1,46 @@
 module Lockdown
-  class InvalidRuleContext < StandardError; end
-  class PermissionScopeCollision < StandardError; end
-
   class Controller
-    attr_accessor :name, :access_methods
+    attr_accessor :name, :access_methods, :only_methods, :except_methods
 
     def initialize(name)
       @name = name
+      @except_methods = []
+    end
+
+    def set_access_methods
+      if @only_methods
+        @access_methods = paths_for(@name, *@only_methods)
+      else
+        @access_methods = paths_for(@name)
+      end
+
+      apply_exceptions if @except_methods.length > 0
+    end
+
+    private
+
+    def apply_exceptions
+      exceptions = paths_for(@name, *@except_methods)
+      @access_methods = @access_methods - exceptions
+    end
+
+    def paths_for(str_sym, *methods)
+      Lockdown::System.paths_for(str_sym, *methods)
     end
   end
 
   class Model
-    attr_accessor :name, :controller_method, :model_method, :association
+    attr_accessor :name, :controller_method, :model_method, :association, :param
 
-    def initialize(name)
+    def initialize(name, param = :id)
       @name = name
+      @param = param
     end
 
-    def association=(type)
-      @assocation = type
+    def class_name
+      self.name.to_s.camelize
     end
+ 
   end
   
   class Permission
@@ -42,16 +63,16 @@ module Lockdown
     # ==== Summary of model oriented methods:
     #
     #   # defines which model we're talking about
-    #   .to_model(:model_name)         
+    #   .to_model(:model)         
     #
-    #   # data_method must be available to the controller
-    #   .where(:data_method)           
+    #   # model_method is simply a public method on :model
+    #   .where(:model_method)           
     #
-    #   # model_name.value_method must equal data_method
-    #   .equals(:value_method)         
+    #   # controller_method must equal model_method
+    #   .equals(:controller_method)         
     #
-    #   # model_name.values_method.include?(data_method)
-    #   .is_in(:values_method)         
+    #   # controller_method.include?(model_method)
+    #   .is_in(:controller_method)         
     #   
     #
     # ==== Example:
@@ -74,17 +95,18 @@ module Lockdown
     #       equals(:id)
     #
     def initialize(name_symbol)
-      @name         = name_symbol
-      @controllers  = {}
-      @models       = {}
-      @current_context = Lockdown::RootContext.new(name_symbol)
+      @name             = name_symbol
+      @controllers      = {}
+      @models           = {}
+      @current_context  = Lockdown::RootContext.new(name_symbol)
+      @public_access    = false
+      @protected_access = false
     end
 
     def with_controller(name_symbol)
       validate_context
 
       controller = Controller.new(name_symbol)
-      controller.access_methods = paths_for(name_symbol)
       @controllers[name_symbol] = controller
       @current_context = Lockdown::ControllerContext.new(name_symbol)
       self
@@ -95,8 +117,7 @@ module Lockdown
     def only_methods(*methods)
       validate_context
 
-      current_controller.access_methods = paths_for(current_controller.name, 
-                                                    *methods)
+      current_controller.only_methods = methods
       @current_context = Lockdown::RootContext.new(@name)
       self
     end
@@ -104,39 +125,40 @@ module Lockdown
     def except_methods(*methods)
       validate_context
 
-      current_controller.access_methods = current_controller.access_methods - paths_for(current_controller.name, *methods)
+      current_controller.except_methods = methods
 
       @current_context = Lockdown::RootContext.new(@name)
       self
     end
 
-    def to_model(name_symbol)
+    def to_model(name_symbol, param = :id)
       validate_context
 
-      @models[name_symbol] = Model.new(name_symbol)
+      @models[name_symbol] = Model.new(name_symbol, param)
       @current_context = Lockdown::ModelContext.new(name_symbol)
       self
     end
 
-    def where(controller_method)
+    def where(model_method)
       validate_context
 
+      current_model.model_method = model_method
       @current_context = Lockdown::ModelWhereContext.new(current_context.name)
       self
     end
 
-    def equals(model_method)
+    def equals(controller_method)
       validate_context
 
-      associate_model_method(model_method, :equals)
+      associate_controller_method(controller_method, :==)
       @current_context = Lockdown::RootContext.new(@name)
       self
     end
 
-    def is_in(model_method)
+    def is_in(controller_method)
       validate_context
 
-      associate_model_method(model_method, :includes)
+      associate_controller_method(controller_method, :include?)
       @current_context = Lockdown::RootContext.new(@name)
       self
     end
@@ -153,14 +175,14 @@ module Lockdown
 
     def set_as_public_access
       if protected_access?
-        raise PermissionScopeCollision, "Permission: #{name} already marked as protected and trying to set as public."
+        raise Lockdown::PermissionScopeCollision, "Permission: #{name} already marked as protected and trying to set as public."
       end
       @public_access = true
     end
 
     def set_as_protected_access
       if public_access?
-        raise PermissionScopeCollision, "Permission: #{name} already marked as public and trying to set as protected."
+        raise Lockdown::PermissionScopeCollision, "Permission: #{name} already marked as public and trying to set as protected."
       end
       @protected_access = true
     end
@@ -183,8 +205,8 @@ module Lockdown
 
     private
 
-    def associate_model_method(model_method, association)
-      current_model.model_method = model_method
+    def associate_controller_method(controller_method, association)
+      current_model.controller_method = controller_method
       current_model.association = association
       @current_context = Lockdown::RootContext.new(@name)
     end
@@ -193,12 +215,8 @@ module Lockdown
       method_trace = caller.first;  
       calling_method = caller.first[/#{__FILE__}:(\d+):in `(.*)'/,2]
       unless current_context.allows?(calling_method)
-        raise InvalidRuleContext, "Method: #{calling_method} was called on wrong context #{current_context}. Allowed methods are: #{current_context.allowed_methods.join(',')}."
+        raise Lockdown::InvalidRuleContext, "Method: #{calling_method} was called on wrong context #{current_context}. Allowed methods are: #{current_context.allowed_methods.join(',')}."
       end
-    end
-
-    def paths_for(controller, *methods)
-      Lockdown::System.paths_for(controller, *methods)
     end
   end
 end

@@ -1,3 +1,5 @@
+require 'active_support'
+
 module Lockdown
   module Helper
     def class_name_from_file(str)
@@ -10,10 +12,42 @@ module Lockdown
       if str_sym.is_a?(Symbol)
         titleize(str_sym)
       else
-        underscore(str_sym).tr(' ','_').to_sym
+       str_sym.underscore.tr(' ','_').to_sym
       end
     end
 
+    def user_group_class
+      eval(user_group_model_string)
+    end
+
+    def user_groups_hbtm_reference
+      user_group_model_string.underscore.pluralize.to_sym
+    end
+
+    def user_group_id_reference
+      user_group_model_string.underscore + "_id"
+    end
+
+    def user_class
+      eval(user_model_string)
+    end
+
+    def users_hbtm_reference
+      user_model_string.underscore.pluralize.to_sym
+    end
+
+    def user_id_reference
+      user_model_string.underscore + "_id"
+    end
+
+    def user_group_model_string
+      Lockdown.system.fetch(:user_group_model) || "UserGroup"
+    end
+    
+    def user_model_string
+      Lockdown.system.fetch(:user_model) || "User"
+    end
+    
     def get_string(value)
       if value.respond_to?(:name)
         string_name(value.name)
@@ -47,24 +81,6 @@ module Lockdown
 
     def administrator_group_symbol
       :administrators
-    end
-
-    def qualified_const_defined?(klass)
-      if klass =~ /::/
-        namespace, klass = klass.split("::")
-        eval("#{namespace}.const_defined?(#{klass})") if const_defined?(namespace)
-      else
-        const_defined?(klass)
-      end
-    end
-
-    def qualified_const_get(klass)
-      if klass =~ /::/
-        namespace, klass = klass.split("::")
-        eval(namespace).const_get(klass)
-      else
-        const_get(klass)
-      end
     end
 
     private

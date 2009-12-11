@@ -10,13 +10,17 @@ module Lockdown
         @permissions = Lockdown::System.get_permissions
         @user_groups = Lockdown::System.get_user_groups
 
+        unless ::Permission.table_exists? && Lockdown.user_group_class.table_exists?
+          Lockdown.logger.info ">> Lockdown tables not found.  Skipping database sync."
+          return
+        end
         create_new_permissions
 
         delete_extinct_permissions
       
         maintain_user_groups
       rescue Exception => e
-        puts ">> Lockdown sync failed: #{e}" 
+        Lockdown.logger.error ">> Lockdown sync failed: #{e.backtrace.join("\n")}" 
       end
 
       # Create permissions not found in the database
@@ -26,7 +30,7 @@ module Lockdown
           str = Lockdown.get_string(key)
           p = ::Permission.find(:first, :conditions => ["name = ?", str])
           unless p
-            puts ">> Lockdown: Permission not found in db: #{str}, creating."
+            Lockdown.logger.info ">> Lockdown: Permission not found in db: #{str}, creating."
             ::Permission.create(:name => str)
           end
         end
@@ -37,8 +41,14 @@ module Lockdown
         db_perms = ::Permission.find(:all).dup
         db_perms.each do |dbp|
           unless @permissions.include?(Lockdown.get_symbol(dbp.name))
-            puts ">> Lockdown: Permission no longer in init.rb: #{dbp.name}, deleting."
-            Lockdown.database_execute("delete from permissions_user_groups where permission_id = #{dbp.id}")
+            Lockdown.logger.info ">> Lockdown: Permission no longer in init.rb: #{dbp.name}, deleting."
+          ug_table = Lockdown.user_groups_hbtm_reference.to_s
+          if "permissions" < ug_table
+            join_table = "permissions_#{ug_table}"
+          else
+            join_table = "#{ug_table}_permissions"
+          end
+            Lockdown.database_execute("delete from #{join_table} where permission_id = #{dbp.id}")
             dbp.destroy
           end
         end
@@ -48,7 +58,7 @@ module Lockdown
         # Create user groups not found in the database
         @user_groups.each do |key|
           str = Lockdown.get_string(key)
-          unless ug = ::UserGroup.find(:first, :conditions => ["name = ?", str])
+          unless ug = Lockdown.user_group_class.find(:first, :conditions => ["name = ?", str])
             create_user_group(str, key)
           else
             # Remove permissions from user group not found in init.rb
@@ -61,14 +71,26 @@ module Lockdown
       end
 
       def create_user_group(name_str, key)
-        puts ">> Lockdown: UserGroup not in the db: #{name_str}, creating."
-        ug = ::UserGroup.create(:name => name_str)
+        Lockdown.logger.info ">> Lockdown: #{Lockdown::System.fetch(:user_group_model)} not in the db: #{name_str}, creating."
+        ug = Lockdown.user_group_class.create(:name => name_str)
         #Inefficient, definitely, but shouldn't have any issues across orms.
+        #
         Lockdown::System.permissions_for_user_group(key).each do |perm|
-          p = ::Permission.find(:first, :conditions => ["name = ?", 
-                                Lockdown.get_string(perm)])
 
-          Lockdown.database_execute "insert into permissions_user_groups(permission_id, user_group_id) values(#{p.id}, #{ug.id})"
+          if Lockdown::System.permission_assigned_automatically?(perm)
+            Lockdown.logger.info  ">> Permission #{perm} cannot be assigned to #{name_str}.  Already belongs to built in user group (public or protected)."
+            raise  InvalidPermissionAssignment, "Invalid permission assignment"
+          end
+
+          p = ::Permission.find(:first, :conditions => ["name = ?", Lockdown.get_string(perm)]) 
+
+          ug_table = Lockdown.user_groups_hbtm_reference.to_s
+          if "permissions" < ug_table
+            join_table = "permissions_#{ug_table}"
+          else
+            join_table = "#{ug_table}_permissions"
+          end
+          Lockdown.database_execute "insert into #{join_table}(permission_id, #{Lockdown.user_group_id_reference}) values(#{p.id}, #{ug.id})"
         end
       end
 
@@ -77,7 +99,7 @@ module Lockdown
           perm_sym = Lockdown.get_symbol(perm)
           perm_string = Lockdown.get_string(perm)
           unless Lockdown::System.permissions_for_user_group(key).include?(perm_sym)
-            puts ">> Lockdown: Permission: #{perm_string} no longer associated to User Group: #{ug.name}, deleting."
+            Lockdown.logger.info ">> Lockdown: Permission: #{perm_string} no longer associated to User Group: #{ug.name}, deleting."
             ug.permissions.delete(perm)
           end
         end
@@ -93,7 +115,7 @@ module Lockdown
           end
           # if not found, add it
           unless found
-            puts ">> Lockdown: Permission: #{perm_string} not found for User Group: #{ug.name}, adding it."
+            Lockdown.logger.info ">> Lockdown: Permission: #{perm_string} not found for User Group: #{ug.name}, adding it."
             p = ::Permission.find(:first, :conditions => ["name = ?", perm_string])
             ug.permissions << p
           end

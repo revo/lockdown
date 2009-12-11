@@ -15,7 +15,7 @@ module Lockdown
         def link_to_secured(name, options = {}, html_options = nil)
           url = url_for(options)
 
-          method = html_options ? html_options[:method] : nil
+          method = html_options ? html_options[:method] : :get
 
          url_to_authorize = remove_subdirectory(url)
 
@@ -28,7 +28,7 @@ module Lockdown
         def button_to_secured(name, options = {}, html_options = nil)
           url = url_for(options)
 
-          method = html_options ? html_options[:method] : nil
+          method = html_options ? html_options[:method] : :get
 
           url_to_authorize = remove_subdirectory(url)
 

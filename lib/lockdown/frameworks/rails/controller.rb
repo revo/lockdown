@@ -4,11 +4,7 @@ module Lockdown
       module Controller
         
         def available_actions(klass)
-          if klass.respond_to?(:action_methods)
-            klass.action_methods
-          else
-            klass.public_instance_methods - klass.hidden_actions
-          end
+          klass.action_methods
         end
 
         def controller_name(klass)
@@ -17,13 +13,17 @@ module Lockdown
 
         # Locking methods
         module Lock
+
           def configure_lockdown
+            Lockdown.maybe_parse_init
             check_session_expiry
             store_location
           end
 
+          # Basic auth functionality needs to be reworked as 
+          # Lockdown doesn't provide authentication functionality.
           def set_current_user
-            login_from_basic_auth? unless logged_in?
+            #login_from_basic_auth? unless logged_in?
             if logged_in?
               Thread.current[:who_did_it] = Lockdown::System.
                 call(self, :who_did_it)
@@ -32,9 +32,11 @@ module Lockdown
 
           def check_request_authorization
             unless authorized?(path_from_hash(params))
-              raise SecurityError, "Authorization failed for params #{params.inspect}"
+              raise SecurityError, "Authorization failed! \nparams: #{params.inspect}\nsession: #{session.inspect}"
             end
           end
+
+          protected 
   
           def path_allowed?(url)
             session[:access_rights] ||= Lockdown::System.public_access
@@ -61,6 +63,9 @@ module Lockdown
           end
       
           def authorized?(url, method = nil)
+            # Reset access unless caching?
+            add_lockdown_session_values unless Lockdown.caching?
+
             return false unless url
 
             return true if current_user_is_admin?
@@ -69,24 +74,31 @@ module Lockdown
 
             url_parts = URI::split(url.strip)
 
-            url = url_parts[5]
+            path = url_parts[5]
 
-            return true if path_allowed?(url)
+            return true if path_allowed?(path)
 
             begin
-              hash = ActionController::Routing::Routes.recognize_path(url, :method => method)
+              hash = ActionController::Routing::Routes.recognize_path(path, :method => method)
               return path_allowed?(path_from_hash(hash)) if hash
-            rescue Exception
+            rescue Exception => e
               # continue on
             end
+
+            # Mailto link
+            return true if url =~ /^mailto:/
+
+            # Public file
+            file = File.join(RAILS_ROOT, 'public', url)
+            return true if File.exists?(file)
 
             # Passing in different domain
             return remote_url?(url_parts[2])
           end
     
-          def access_denied(e)
+          def ld_access_denied(e)
 
-            RAILS_DEFAULT_LOGGER.info "Access denied: #{e}"
+            Lockdown.logger.info "Access denied: #{e}"
 
             if Lockdown::System.fetch(:logout_on_access_violation)
               reset_session
