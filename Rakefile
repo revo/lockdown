@@ -22,14 +22,14 @@ end
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gemspec|
-    gemspec.name = "lockdown"
+    gemspec.name = "revo-lockdown"
     gemspec.version = Lockdown.version
     gemspec.rubyforge_project = "lockdown"
     gemspec.summary = "Authorization system for Rails 2.x"
     gemspec.description = "Restrict access to your controller actions.  Supports basic model level restrictions as well"
     gemspec.email = "andy@stonean.com"
     gemspec.homepage = "http://stonean.com/wiki/lockdown"
-    gemspec.authors = ["Andrew Stone"]
+    gemspec.authors = ["Andrew Stone", "Revo Pty. Ltd."]
     gemspec.add_development_dependency('rspec')
   end
   Jeweler::GemcutterTasks.new
