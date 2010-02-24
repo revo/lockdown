@@ -106,7 +106,12 @@ module Lockdown
             respond_to do |format|
               format.html do
                 store_location
-                redirect_to Lockdown::System.fetch(:access_denied_path)
+                access_denied_action = Lockdown::System.fetch(:access_denied_action)
+                if access_denied_action && respond_to?(access_denied_action)
+                  send(access_denied_action)
+                else
+                  redirect_to Lockdown::System.fetch(:access_denied_path)
+                end
                 return
               end
               format.xml do

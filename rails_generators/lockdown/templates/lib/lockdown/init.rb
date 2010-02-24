@@ -40,6 +40,11 @@ Lockdown::System.configure do
   #
   # Set redirect to path on unauthorized access attempt:
   #       options[:access_denied_path] = "/"
+  
+  # Set action in controller to handle unauthorized access attempt. 
+  # This will allow specific controller to handle :access_denined_action error
+  # e.g. redirect to specific URL.
+  # options[:access_denied_action] =  :access_denied_action
   #
   # Set redirect to path on successful login:
   #       options[:successful_login_path] = "/"

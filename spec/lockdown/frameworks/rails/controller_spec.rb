@@ -3,6 +3,18 @@ require File.join(File.dirname(__FILE__), %w[.. .. .. spec_helper])
 class TestAController
   extend Lockdown::Frameworks::Rails::Controller
   include Lockdown::Frameworks::Rails::Controller::Lock
+  
+  # Stub method for tests
+  def respond_to &block
+    block.call(self) 
+  end
+  
+  def html &block
+    block.call(self)
+  end
+  
+  def xml
+  end
 end
 
 describe Lockdown::Frameworks::Rails::Controller do
@@ -156,6 +168,27 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
   end
 
   describe "#access_denied" do
+    
+    before(:each) do
+      @exception = SecurityError.new
+      Lockdown::System.stub!(:fetch).with(:logout_on_access_violation).and_return(false)
+      @controller.should_receive(:store_location)
+    end
+    
+    it "should call configured access_denied_action" do
+      Lockdown::System.stub!(:fetch).with(:access_denied_action).and_return(:some_action)
+      @controller.should_receive(:respond_to?).with(:some_action).and_return(true)
+      @controller.should_receive(:some_action)
+      @controller.send(:ld_access_denied, @exception)
+    end
+    
+    it "should redirect to accessed_denied_path" do
+      Lockdown::System.stub!(:fetch).with(:access_denied_path).and_return("some_path")
+      Lockdown::System.stub!(:fetch).with(:access_denied_action).and_return(nil)
+      @controller.should_receive(:redirect_to).with("some_path")
+      @controller.send(:ld_access_denied, @exception)
+    end
+    
   end
 
   describe "#path_from_hash" do
