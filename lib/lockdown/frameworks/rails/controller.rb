@@ -1,4 +1,5 @@
-module Lockdown
+
+ckdown
   module Frameworks
     module Rails
       module Controller
@@ -46,16 +47,24 @@ module Lockdown
           end
 
           def user_groups_allowed_on_path?(path, user_groups)
+            if @acces_group_rights.nil?
+                @acces_group_rights = {}
+            end
+
             user_groups.each do |user_group|
               user_group_sym = user_group.name.underscore.tr(' ','_').to_sym
-              rights = (Lockdown::System.public_access + Lockdown::System.access_rights_for_user_group(user_group_sym))
-              return true if rights.include?(path)
+
+              if @acces_group_rights[user_group_sym].nil?
+                @acces_group_rights[user_group_sym] = Lockdown::System.public_access + Lockdown::System.access_rights_for_user_group(user_group_sym)
+              end
+
+              return true if @acces_group_rights[user_group_sym].include?(path)
             end
             return false
           end
 
           def path_part_of_public_access?(path)
-            return Lockdown::System.public_access.include?(path)         
+            return Lockdown::System.public_access.include?(path)
           end
     
           def check_session_expiry
@@ -176,4 +185,5 @@ module Lockdown
     end # Rails
   end # Frameworks
 end # Lockdown
+
 
