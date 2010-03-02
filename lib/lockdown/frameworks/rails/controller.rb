@@ -1,5 +1,4 @@
-
-ckdown
+module Lockdown
   module Frameworks
     module Rails
       module Controller

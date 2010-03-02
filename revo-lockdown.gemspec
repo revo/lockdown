@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
      "lib/lockdown/rules.rb",
      "lib/lockdown/session.rb",
      "lib/lockdown/system.rb",
+     "revo-lockdown-1.7.0.gem",
      "revo-lockdown.gemspec",
      "spec/lockdown/context_spec.rb",
      "spec/lockdown/frameworks/rails/controller_spec.rb",
