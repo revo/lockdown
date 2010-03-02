@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew Stone", "Revo Pty. Ltd."]
-  s.date = %q{2010-03-02}
+  s.date = %q{2010-03-03}
   s.description = %q{Restrict access to your controller actions.  Supports basic model level restrictions as well}
   s.email = %q{andy@stonean.com}
   s.extra_rdoc_files = [
@@ -32,7 +32,6 @@ Gem::Specification.new do |s|
      "lib/lockdown/rules.rb",
      "lib/lockdown/session.rb",
      "lib/lockdown/system.rb",
-     "revo-lockdown-1.7.0.gem",
      "revo-lockdown.gemspec",
      "spec/lockdown/context_spec.rb",
      "spec/lockdown/frameworks/rails/controller_spec.rb",
