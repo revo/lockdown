@@ -83,7 +83,8 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
 
   describe "#path_allowed" do
     it "should return false for an invalid path" do
-      @controller.send(:path_allowed?,"/no/good").should be_false
+      @controller.stub!(:path_part_of_public_access?).and_return(false)
+      @controller.send(:path_allowed?, "/no/good", nil).should be_false
     end
   end
 
@@ -158,10 +159,16 @@ describe Lockdown::Frameworks::Rails::Controller::Lock do
     end
 
     it "should return false if path not in access_rights" do
+      @controller.stub!(:current_user_is_admin?).and_return(false)
+      @controller.stub!(:current_user).and_return(nil)
+      @controller.stub!(:path_part_of_public_access?).and_return(false)
       @controller.send(:authorized?,@a_path).should be_false
     end
 
     it "should return true if path is in access_rights" do
+      @controller.stub!(:current_user_is_admin?).and_return(false)
+      @controller.stub!(:current_user).and_return(nil)
+      @controller.stub!(:path_part_of_public_access?).and_return(true)
       @controller.send(:authorized?,@sample_url).should be_true
     end
 

@@ -32,15 +32,30 @@ module Lockdown
 
           def check_request_authorization
             unless authorized?(path_from_hash(params))
-              raise SecurityError, "Authorization failed! \nparams: #{params.inspect}\nsession: #{session.inspect}"
+              raise SecurityError, "Lockdown Authorization failed! \nparams: #{params.inspect}\nsession: #{session.inspect}"
             end
           end
 
-          protected 
-  
-          def path_allowed?(url)
-            session[:access_rights] ||= Lockdown::System.public_access
-            session[:access_rights].include?(url)
+          protected
+          def path_allowed?(path, user)
+            if user
+              return user_groups_allowed_on_path?(path, user.user_groups)
+            else
+              return path_part_of_public_access?(path)
+            end
+          end
+
+          def user_groups_allowed_on_path?(path, user_groups)
+            user_groups.each do |user_group|
+              user_group_sym = user_group.name.underscore.tr(' ','_').to_sym
+              rights = (Lockdown::System.public_access + Lockdown::System.access_rights_for_user_group(user_group_sym))
+              return true if rights.include?(path)
+            end
+            return false
+          end
+
+          def path_part_of_public_access?(path)
+            return Lockdown::System.public_access.include?(path)         
           end
     
           def check_session_expiry
@@ -76,11 +91,11 @@ module Lockdown
 
             path = url_parts[5]
 
-            return true if path_allowed?(path)
+            return true if path_allowed?(path, current_user)
 
             begin
               hash = ActionController::Routing::Routes.recognize_path(path, :method => method)
-              return path_allowed?(path_from_hash(hash)) if hash
+              return path_allowed?(path_from_hash(hash), current_user) if hash
             rescue Exception => e
               # continue on
             end

@@ -7,7 +7,6 @@ require File.join("lockdown", "helper")
 require File.join("lockdown", "session")
 require File.join("lockdown", "context")
 require File.join("lockdown", "permission")
-require File.join("lockdown", "database")
 require File.join("lockdown", "rules")
 require File.join("lockdown", "system")
 require File.join("lockdown", "references")
@@ -16,7 +15,7 @@ module Lockdown
   extend Lockdown::References
   extend Lockdown::Helper
 
-  VERSION = '1.6.2'
+  VERSION = '1.7.0'
 
   class << self
     attr_accessor :logger
@@ -41,9 +40,9 @@ module Lockdown
     # Mixin Lockdown code to the appropriate framework and ORM
     def mixin
       if mixin_resource?("frameworks")
-        unless mixin_resource?("orms")
-          raise NotImplementedError, "ORM unknown to Lockdown!"
-        end
+#        unless mixin_resource?("orms")
+#          raise NotImplementedError, "ORM unknown to Lockdown!"
+#        end
       else
         Lockdown.logger.info "=> Note:: Lockdown cannot determine framework and therefore is not active.\n"
       end

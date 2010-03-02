@@ -11,7 +11,7 @@ module Lockdown
       # Lockdown::Rules defines process_rules
       process_rules
 
-      Lockdown::Database.sync_with_db unless skip_sync?
+#      Lockdown::Database.sync_with_db unless skip_sync?
 
       @initialized = true if Lockdown.caching?
     end

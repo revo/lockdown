@@ -349,18 +349,18 @@ module Lockdown
 
       methods = controller.
                   access_methods.
-                    collect do |am| 
+                    collect do |am|
                       am[am.index('/') + 1..-1].to_sym if am.index('/')
                     end.compact.inspect
 
       return <<-RUBY
-        if controller_name == "#{controller.name}" 
+        if controller_name == "#{controller.name}"
           if #{methods}.include?(action_name.to_sym)
             unless instance_variable_defined?(:@#{model.name})
               @#{model.name} = #{model.class_name}.find(params[#{model.param.inspect}])
             end
-            # Need to make sure we find the model first before checking admin status. 
-            return true if current_user_is_admin? 
+            # Need to make sure we find the model first before checking admin status.
+            return true if current_user_is_admin?
             unless @#{model.name}.#{model.model_method}.#{model.association}(#{model.controller_method})
               raise SecurityError, "Access to #\{action_name\} denied to #{model.name}.id #\{@#{model.name}.id\}"
             end

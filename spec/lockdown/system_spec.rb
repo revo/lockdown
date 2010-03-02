@@ -18,8 +18,6 @@ describe Lockdown::System do
  
       Lockdown::System.should_receive :process_rules
  
-      Lockdown::Database.should_receive :sync_with_db 
-     
       Lockdown.should_receive :caching?
 
       Lockdown::System.configure do

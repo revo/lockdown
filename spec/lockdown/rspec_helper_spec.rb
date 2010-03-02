@@ -15,13 +15,14 @@ describe Lockdown::RspecHelper do
     @controller = TestAController.new
     @controller.stub!(:session).and_return({})
 
-    usr = mock  :user, 
+    usr_group = mock :usr_group
+
+    usr = mock  :user,
+                :user_group => usr_group,
                 :first_name => 'John',
                 :last_name  => 'Smith',
                 :password   => 'mysecret',
                 :password_confirmation  => 'mysecret'
-
-    usr_group = mock :usr_group
 
     Lockdown.should_receive(:maybe_parse_init)
     RspecEnv.send :include, Lockdown::RspecHelper
