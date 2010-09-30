@@ -19,8 +19,17 @@ module Lockdown
           end
         end
 
-        def link_to_secured(name, options = {}, html_options = nil)
-          secured_link_for(:link_to_open, name, options, html_options)
+        def link_to_secured(*args, &block)
+          if block_given?
+            name         = nil
+            options      = args.first || {}
+            html_options = args.second
+          else
+            name         = args.first
+            options      = args.second || {}
+            html_options = args.third
+          end
+          secured_link_for(:link_to_open, name, options, html_options, &block)
         end
 
         def link_to_remote_secured(name, options = {}, html_options = nil)
@@ -48,12 +57,16 @@ module Lockdown
           rvalue.join( Lockdown::System.fetch(:link_separator) )
         end
 
-        def secured_link_for(link_method_name, name, options, html_options)
+        def secured_link_for(link_method_name, name, options, html_options, &block)
           url = url_from(options)
           method = html_options ? html_options[:method] : :get
           url_to_authorize = remove_subdirectory(url)
           if authorized?(url_to_authorize, method)
-            return send(link_method_name, name, options, html_options)
+            if block_given?
+              return send(link_method_name, options, html_options, &block)
+            else
+              return send(link_method_name, name, options, html_options)
+            end
           end
           return ""
         end
